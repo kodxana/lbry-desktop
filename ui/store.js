@@ -182,14 +182,14 @@ const persistedReducer = persistReducer(persistOptions, rootReducer);
 const bulkThunk = createBulkThunkMiddleware();
 
 // enables performance profiling in chrome
-// const userTiming = () => next => action => {
-//   if (performance.mark === undefined) return next(action);
-//   performance.mark(`${action.type}_start`);
-//   const result = next(action);
-//   performance.mark(`${action.type}_end`);
-//   performance.measure(`${action.type}`, `${action.type}_start`, `${action.type}_end`);
-//   return result;
-// };
+const userTiming = () => next => action => {
+  if (performance.mark === undefined) return next(action);
+  performance.mark(`${action.type}_start`);
+  const result = next(action);
+  performance.mark(`${action.type}_end`);
+  performance.measure(`${action.type}`, `${action.type}_start`, `${action.type}_end`);
+  return result;
+};
 
 const middleware = [
   sharedStateMiddleware,
@@ -199,7 +199,7 @@ const middleware = [
   routerMiddleware(history),
   thunk,
   bulkThunk,
-  // userTiming,
+  userTiming,
 ];
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 const store = createStore(

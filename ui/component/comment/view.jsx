@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { isEmpty } from 'util/object';
 import DateTime from 'component/dateTime';
 import Button from 'component/button';
-import Expandable from 'component/expandable';
+// import Expandable from 'component/expandable';
 import MarkdownPreview from 'component/common/markdown-preview';
 import ChannelThumbnail from 'component/channelThumbnail';
 import { Menu, MenuList, MenuButton, MenuItem } from '@reach/menu-button';
@@ -16,7 +16,6 @@ import CommentCreate from 'component/commentCreate';
 import classnames from 'classnames';
 import usePersistedState from 'effects/use-persisted-state';
 import CommentsReplies from 'component/commentsReplies';
-import scrollIntoView from 'dom-scroll-into-view';
 
 type Props = {
   uri: string,
@@ -39,6 +38,7 @@ type Props = {
   scrollto: boolean,
   reply: boolean,
   linkedComment?: any,
+  commentingEnabled: boolean,
 };
 
 const LENGTH_TO_COLLAPSE = 300;
@@ -64,6 +64,7 @@ function Comment(props: Props) {
     blockChannel,
     scrollto,
     linkedComment,
+    commentingEnabled,
   } = props;
 
   const [isEditing, setEditing] = useState(false);
@@ -157,6 +158,8 @@ function Comment(props: Props) {
             <time className="comment__time" dateTime={timePosted}>
               {DateTime.getTimeAgoStr(timePosted)}
             </time>
+            <Button navigate={``} icon={ICONS.COPY} />
+            <Button icon={ICONS.SHARE_LINK} />
           </div>
           <div className="comment__menu">
             <Menu>
@@ -227,9 +230,9 @@ function Comment(props: Props) {
             <Button
               button="link"
               requiresAuth={IS_WEB}
+              label={commentingEnabled ? __('Reply') : __('Sign in to reply')}
               className="comment__action"
               onClick={() => setReplying(true)}
-              icon={ICONS.REPLY}
             />
           )}
           {!parentId && !isEditing && (
@@ -237,7 +240,7 @@ function Comment(props: Props) {
               button="link"
               requiresAuth={IS_WEB}
               className="comment__action"
-              onClick={() => alert('sycophant')}
+              onClick={() => alert('liked')}
               icon={ICONS.YES}
             />
           )}
@@ -246,7 +249,7 @@ function Comment(props: Props) {
               button="link"
               requiresAuth={IS_WEB}
               className="comment__action"
-              onClick={() => alert('terrible')}
+              onClick={() => alert('disliked')}
               icon={ICONS.NO}
             />
           )}

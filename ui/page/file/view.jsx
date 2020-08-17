@@ -11,7 +11,7 @@ import Card from 'component/common/card';
 import FileDetails from 'component/fileDetails';
 import FileValues from 'component/fileValues';
 import FileDescription from 'component/fileDescription';
-import WaitUntilOnPage from 'component/common/wait-until-on-page';
+// import WaitUntilOnPage from 'component/common/wait-until-on-page';
 import RecommendedContent from 'component/recommendedContent';
 import CommentsList from 'component/commentsList';
 import CommentCreate from 'component/commentCreate';
@@ -31,6 +31,7 @@ type Props = {
   markSubscriptionRead: (string, string) => void,
   obscureNsfw: boolean,
   isMature: boolean,
+  linkedComment: any,
 };
 
 class FilePage extends React.Component<Props> {
@@ -136,7 +137,7 @@ class FilePage extends React.Component<Props> {
   lastReset: ?any;
 
   render() {
-    const { uri, renderMode, costInfo, obscureNsfw, isMature } = this.props;
+    const { uri, renderMode, costInfo, obscureNsfw, isMature, linkedComment } = this.props;
 
     if (obscureNsfw && isMature) {
       return this.renderBlockedPage();
@@ -154,9 +155,9 @@ class FilePage extends React.Component<Props> {
             actions={
               <div>
                 <CommentCreate uri={uri} />
-                <WaitUntilOnPage lastUpdateDate={this.lastReset}>
-                  <CommentsList uri={uri} />
-                </WaitUntilOnPage>
+                {/* <WaitUntilOnPage lastUpdateDate={this.lastReset} skipWait={Boolean(linkedComment)}> */}
+                <CommentsList uri={uri} linkedComment={linkedComment} />
+                {/* </WaitUntilOnPage> */}
               </div>
             }
           />

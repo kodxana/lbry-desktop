@@ -9,7 +9,7 @@ type Props = {
   uri: string,
   claimIsMine: boolean,
   myChannels: ?Array<ChannelClaim>,
-  linkedComment?: string,
+  linkedComment?: Comment,
 };
 
 function CommentsReplies(props: Props) {
@@ -51,18 +51,18 @@ function CommentsReplies(props: Props) {
 
   return (
     <div className={'comment__replies-container'}>
-      {!expanded && (
-        <Button
-          button={'link'}
-          label={__('Show %number% Replies', { number: comments.length })}
-          onClick={() => setExpanded(true)}
-          icon={ICONS.DOWN}
-        />
-      )}
-      {expanded && <Button button={'link'} label={'Hide Replies'} onClick={() => setExpanded(false)} icon={ICONS.UP} />}
-      {expanded && start > 0 && (
-        <Button button={'link'} label={'Show more above'} onClick={() => setStart(0)} icon={ICONS.UP} />
-      )}
+      <div className="comment__actions">
+        {!expanded && (
+          <Button
+            button={'link'}
+            label={__('Show %number% Replies', { number: comments.length })}
+            onClick={() => setExpanded(true)}
+            icon={ICONS.DOWN}
+          />
+        )}
+        {expanded && start > 0 && <Button button={'link'} label={'Show more above'} onClick={() => setStart(0)} />}
+        {expanded && <Button button={'link'} label={'Hide Replies'} onClick={() => setExpanded(false)} />}
+      </div>
       {comments && displayedComments && expanded && (
         <ul className="comments">
           {displayedComments.map(comment => {
@@ -86,7 +86,7 @@ function CommentsReplies(props: Props) {
         </ul>
       )}
       {expanded && comments && end < comments.length && (
-        <Button button={'link'} label={'Show more below'} onClick={() => setEnd(end + 10)} icon={ICONS.DOWN} />
+        <Button button={'link'} label={'Show more below'} onClick={() => setEnd(end + 10)} />
       )}
     </div>
   );

@@ -1,7 +1,9 @@
 import { connect } from 'react-redux';
-import { makeSelectClaimForUri, makeSelectMetadataForUri, makeSelectTagsForUri } from 'lbry-redux';
+import { doPrepareEdit, makeSelectClaimForUri, makeSelectMetadataForUri, makeSelectTagsForUri } from 'lbry-redux';
 import { selectUser } from 'redux/selectors/user';
 import FileDescription from './view';
+import { doOpenModal } from 'redux/actions/app';
+import fs from 'fs';
 
 const select = (state, props) => ({
   claim: makeSelectClaimForUri(props.uri)(state),
@@ -10,4 +12,9 @@ const select = (state, props) => ({
   tags: makeSelectTagsForUri(props.uri)(state),
 });
 
-export default connect(select, null)(FileDescription);
+const perform = dispatch => ({
+  openModal: (modal, props) => dispatch(doOpenModal(modal, props)),
+  prepareEdit: (publishData, uri, fileInfo) => dispatch(doPrepareEdit(publishData, uri, fileInfo, fs)),
+});
+
+export default connect(select, perform)(FileDescription);

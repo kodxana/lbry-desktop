@@ -1,5 +1,5 @@
 .comments {
-  padding-top: var(--spacing-l);
+  background: var(--color-background);
 }
 
 .comment {
@@ -10,10 +10,10 @@
 
   &:not(:last-of-type) {
     border-bottom: 1px solid var(--color-border);
-    padding: var(--spacing-m) 0;
+    padding: var(--spacing-m) var(--spacing-m);
   }
   &:last-of-type {
-    padding-top: var(--spacing-m);
+    padding: var(--spacing-m) var(--spacing-m) 0 var(--spacing-m);
   }
 
   .channel-thumbnail {
@@ -27,17 +27,18 @@
 
 .comment__reply {
   border-left: 5px solid var(--color-primary-alt);
-  margin-left: var(--spacing-m);
+  margin-left: 0;
+  padding-left: 0;
 
   .comment__author-thumbnail {
-    margin-left: var(--spacing-m);
+    margin-left: 0;
   }
 }
 
 .comment__highlighted {
-  //border-left: 5px solid var(--color-purchased);
+  border-left: 5px solid var(--color-purchased);
   position: relative;
-  background: var(--color-notice);
+  box-sizing: border-box;
 }
 
 .comment__highlighted-title {
@@ -131,6 +132,7 @@
   > *:not(:last-child) {
     margin-right: var(--spacing-m);
   }
+  margin-top: var(--spacing-s);
 }
 
 .comment__replies-container {
