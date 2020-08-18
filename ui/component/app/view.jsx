@@ -112,7 +112,10 @@ function App(props: Props) {
   } = props;
 
   const [isVip, setIsVip] = React.useState(getCookie('odysee'));
+  const [vipError, setVipError] = React.useState(false);
   const [password, setPassword] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState('');
+
   const appRef = useRef();
   const isEnhancedLayout = useKonamiListener();
   const [hasSignedIn, setHasSignedIn] = useState(false);
@@ -298,10 +301,18 @@ function App(props: Props) {
               <Form
                 className="vip-entry"
                 onSubmit={() => {
-                  if (password === ODYSEE_PASSWORD) {
-                    setCookie('odysee', password);
-                    setIsVip(true);
-                  }
+                  setVipError(false);
+                  setIsSubmitting(true);
+                  setTimeout(() => {
+                    if (password === ODYSEE_PASSWORD) {
+                      setCookie('odysee', password);
+                      setIsVip(true);
+                      setIsSubmitting(false);
+                    } else {
+                      setVipError(true);
+                      setIsSubmitting(false);
+                    }
+                  }, 500);
                 }}
               >
                 <FormField
@@ -314,7 +325,8 @@ function App(props: Props) {
                   onChange={e => setPassword(e.target.value)}
                 />
                 <div className="section__actions">
-                  <Button label="Submit" type="submit" button="primary" />
+                  <Button label={isSubmitting ? 'Submitting...' : 'Submit'} type="submit" button="primary" />
+                  {vipError && <span className="error__text">The password you have entered is not correct.</span>}
                 </div>
               </Form>
             }
