@@ -31,7 +31,7 @@ import Button from 'component/button';
 import { Form, FormField } from 'component/common/form';
 import { ODYSEE_PASSWORD } from 'config';
 import { setCookie, getCookie } from 'util/saved-passwords';
-
+console.log('test');
 import {
   useDegradedPerformance,
   STATUS_OK,
