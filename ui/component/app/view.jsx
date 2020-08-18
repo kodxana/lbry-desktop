@@ -307,7 +307,7 @@ function App(props: Props) {
                 <FormField
                   autoFocus
                   style={{ textAlign: 'left' }}
-                  type="password"
+                  type="text"
                   name="a"
                   label="Password"
                   value={password}
