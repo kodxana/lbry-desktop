@@ -864,7 +864,7 @@ const FINCANCE_CHANNEL_IDS = [
 export const FINANCE = {
   label: __('Finance 2.0'),
   icon: ICONS.FINANCE,
-  route: '/$/finace',
+  route: '/$/finance',
   navigate: `/$/${PAGES.DISCOVER}?${CS.CLAIM_TYPE}=${CS.CLAIM_STREAM}&${CS.CHANNEL_IDS_KEY}=${FINCANCE_CHANNEL_IDS.join(
     ','
   )}`,
