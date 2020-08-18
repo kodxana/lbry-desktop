@@ -714,4 +714,19 @@ export const icons = {
       <line x1="17.5" y1="15" x2="9" y2="15" />
     </g>
   ),
+  [ICONS.TILE_LAYOUT]: buildIcon(
+    <g>
+      <path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18" />
+      <line x1="20" y1="12" x2="4" y2="12" />
+    </g>
+  ),
+  [ICONS.LIST_LAYOUT]: buildIcon(
+    <g>
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+
+      <line x1="20" y1="9" x2="4" y2="9" />
+
+      <line x1="20" y1="15" x2="4" y2="15" />
+    </g>
+  ),
 };

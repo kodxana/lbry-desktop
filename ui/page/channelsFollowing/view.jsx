@@ -20,7 +20,7 @@ function ChannelsFollowingPage(props: Props) {
   return !hasSubsribedChannels ? (
     <ChannelsFollowingDiscoverPage />
   ) : (
-    <Page noFooter>
+    <Page noFooter fullWidthPage>
       <ClaimListDiscover
         headerLabel={
           <span>
