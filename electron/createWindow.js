@@ -151,20 +151,19 @@ export default (appState) => {
   });
 
   window.on('unresponsive', () => {
-    dialog.showMessageBox(
-      window,
-      {
+    dialog
+      .showMessageBox(window, {
         type: 'warning',
         buttons: ['Wait', 'Quit'],
         title: 'LBRY Unresponsive',
         defaultId: 1,
         message: 'LBRY is not responding. Would you like to quit?',
         cancelId: 0,
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 1) app.quit();
-      }
-    );
+      })
+      .then(({ response }) => {
+        if (response === 1) app.quit();
+      })
+      .catch(() => {});
   });
 
   window.once('ready-to-show', () => {

@@ -332,16 +332,19 @@ app.on('will-quit', (event) => {
     // escalation dialog, so we show Windows users a warning dialog first.
 
     showingAutoUpdateCloseAlert = true;
-    dialog.showMessageBox(
-      {
+    dialog
+      .showMessageBox({
         type: 'info',
         title: 'LBRY Will Upgrade',
-        message: 'LBRY has a pending upgrade. Please select "Yes" to install it on the prompt shown after this one.',
-      },
-      () => {
+        message:
+          'LBRY has a pending upgrade. Please select "Yes" to install it on the prompt shown after this one.',
+      })
+      .then(() => {
         app.quit();
-      }
-    );
+      })
+      .catch(() => {
+        app.quit();
+      });
 
     event.preventDefault();
     return;

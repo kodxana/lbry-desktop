@@ -30,7 +30,8 @@ import { useHistory } from 'react-router';
 import Spinner from 'component/spinner';
 
 import fs from 'fs';
-import tempy from 'tempy';
+import os from 'os';
+import path from 'path';
 
 type Props = {
   disabled: boolean,
@@ -370,8 +371,10 @@ function PublishForm(props: Props) {
   function saveFileChanges() {
     let output;
     if (!output || output === '') {
-      // Generate a temporary file:
-      output = tempy.file({ name: 'post.md' });
+      // Generate a temporary file path without external deps
+      const tmpDir = os.tmpdir();
+      const unique = `post-${Date.now()}-${Math.random().toString(36).slice(2)}.md`;
+      output = path.join(tmpDir, unique);
     }
     // Create a temporary file and save file changes
     if (output && output !== '') {
