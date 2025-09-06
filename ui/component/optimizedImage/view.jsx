@@ -22,7 +22,15 @@ function OptimizedImage(props: Props) {
   function getOptimizedImgUrl(url, width, height) {
     let optimizedUrl = url;
     if (url && !url.startsWith('/public/')) {
-      optimizedUrl = url.trim().replace(/^http:\/\//i, 'https://');
+      optimizedUrl = url.trim();
+
+      // Avoid upgrading localhost/loopback to https (dev servers are http).
+      if (
+        /^http:\/\//i.test(optimizedUrl) &&
+        !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\//i.test(optimizedUrl)
+      ) {
+        optimizedUrl = optimizedUrl.replace(/^http:\/\//i, 'https://');
+      }
 
       // @if TARGET='web'
       if (!optimizedUrl.endsWith('.gif')) {
@@ -105,6 +113,7 @@ function OptimizedImage(props: Props) {
       {...imgProps}
       style={{ visibility: waitLoad ? 'hidden' : 'visible' }}
       src={optimizedSrc}
+      referrerPolicy="no-referrer"
       onLoad={() => {
         if (waitLoad) ref.current.style.visibility = 'visible';
         adjustOptimizationIfNeeded(ref.current, objectFit, src);

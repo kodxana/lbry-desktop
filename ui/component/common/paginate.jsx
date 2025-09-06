@@ -25,6 +25,14 @@ function Paginate(props: Props) {
   const [currentPage, setCurrentPage] = React.useState(initialPage);
   const isMobile = useIsMobile();
 
+  // Normalize and clamp the page count for ReactPaginate (must be an integer >= 1).
+  const pageCount = React.useMemo(() => {
+    const n = Number(totalPages);
+    if (!Number.isFinite(n) || isNaN(n)) return 1;
+    const ceil = Math.ceil(n);
+    return ceil >= 1 ? ceil : 1;
+  }, [totalPages]);
+
   function handleChangePage(newPageNumber: number) {
     if (onPageChange) {
       onPageChange(newPageNumber);
@@ -43,9 +51,9 @@ function Paginate(props: Props) {
 
   function handlePaginateKeyUp() {
     const newPage = Number(textValue);
-    if (newPage && newPage > 0 && newPage <= totalPages) {
-      handleChangePage(newPage);
-    }
+    if (!newPage) return;
+    const clamped = Math.min(Math.max(newPage, 1), pageCount);
+    handleChangePage(clamped);
   }
 
   React.useEffect(() => {
@@ -54,14 +62,17 @@ function Paginate(props: Props) {
     }
   }, [urlParamPage, setCurrentPage]);
 
+  // Clamp the forced page into range (ReactPaginate is zero-based).
+  const forcedPageIndex = Math.min(Math.max(currentPage, 1), pageCount) - 1;
+
   return (
     // Hide the paginate controls if we are loading or there is only one page
     // It should still be rendered to trigger the onPageChange callback
-    <Form style={totalPages <= 1 ? { display: 'none' } : null} onSubmit={handlePaginateKeyUp}>
+    <Form style={pageCount <= 1 ? { display: 'none' } : null} onSubmit={handlePaginateKeyUp}>
       <fieldset-group class="fieldset-group--smushed fieldgroup--paginate">
         <fieldset-section>
           <ReactPaginate
-            pageCount={totalPages}
+            pageCount={pageCount}
             pageRangeDisplayed={2}
             previousLabel="‹"
             nextLabel="›"
@@ -72,7 +83,7 @@ function Paginate(props: Props) {
             breakClassName="pagination__item pagination__item--break"
             marginPagesDisplayed={2}
             onPageChange={(e) => handleChangePage(e.selected + 1)}
-            forcePage={currentPage - 1}
+            forcePage={forcedPageIndex}
             containerClassName="pagination"
           />
         </fieldset-section>

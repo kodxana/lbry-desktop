@@ -2,7 +2,8 @@
 const { WEBPACK_ELECTRON_PORT } = require('../config');
 const chalk = require('chalk');
 const webpack = require('webpack');
-const merge = require('webpack-merge');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const { merge } = require('webpack-merge');
 const middleware = require('webpack-dev-middleware');
 const express = require('express');
 const app = express();
@@ -15,10 +16,9 @@ let [mainConfig, renderConfig] = require('../webpack.electron.config.js');
 
 renderConfig = merge(renderConfig, {
   entry: { ui: ['webpack-hot-middleware/client'] },
-  plugins: [new webpack.HotModuleReplacementPlugin()],
+  plugins: [new webpack.HotModuleReplacementPlugin(), new ReactRefreshWebpackPlugin({ overlay: false })],
   resolve: {
     alias: {
-      'react-dom': '@hot-loader/react-dom',
       electron: require('path').resolve(__dirname, '../ui/electron-shim.js'),
     },
     symlinks: false,
@@ -26,9 +26,7 @@ renderConfig = merge(renderConfig, {
 });
 
 const mainCompiler = webpack(mainConfig);
-const mainInstance = middleware(mainCompiler, {
-  logLevel: 'warn',
-  writeToDisk: (filename) => {
+const mainInstance = middleware(mainCompiler, { writeToDisk: (filename) => {
     // console.log(`Writing '${filename}'.`);
     return true;
   },
@@ -36,8 +34,7 @@ const mainInstance = middleware(mainCompiler, {
 
 const renderCompiler = webpack(renderConfig);
 const renderInstance = middleware(renderCompiler, {
-  logLevel: 'warn',
-  publicPath: '/',
+  publicPath: `http://localhost:${WEBPACK_ELECTRON_PORT}/`,
 });
 app.use(require('webpack-hot-middleware')(renderCompiler));
 app.use(renderInstance);
@@ -76,3 +73,7 @@ mainInstance.waitUntilValid(() => {
   });
 });
 /* eslint-enable no-console */
+
+
+
+

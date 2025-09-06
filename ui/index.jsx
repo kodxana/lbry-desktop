@@ -10,6 +10,7 @@ import moment from 'moment';
 import * as MODALS from 'constants/modal_types';
 import React, { Fragment, useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import * as SETTINGS from 'constants/settings';
 import {
@@ -291,4 +292,7 @@ function AppWrapper() {
   );
 }
 
-ReactDOM.render(<AppWrapper />, document.getElementById('app'));
+const container = document.getElementById('app');
+const root = createRoot(container);
+root.render(<AppWrapper />);
+

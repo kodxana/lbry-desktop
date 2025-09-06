@@ -3,14 +3,12 @@ import { EMOTES_48px as EMOTES } from 'constants/emotes';
 import { matchSorter } from 'match-sorter';
 import { SEARCH_OPTIONS } from 'constants/search';
 import * as KEYCODES from 'constants/keycodes';
-import Autocomplete from '@mui/material/Autocomplete';
 import BusyIndicator from 'component/common/busy-indicator';
 import EMOJIS from 'emoji-dictionary';
 import LbcSymbol from 'component/common/lbc-symbol';
 import Popper from '@mui/material/Popper';
 import React from 'react';
 import TextareaSuggestionsItem from 'component/textareaSuggestionsItem';
-import TextField from '@mui/material/TextField';
 import useLighthouse from 'effects/use-lighthouse';
 import useThrottle from 'effects/use-throttle';
 
@@ -351,22 +349,6 @@ export default function TextareaWithSuggestions(props: Props) {
     </div>
   );
 
-  const renderInput = (params: any) => {
-    const { InputProps, disabled, fullWidth, id, inputProps: autocompleteInputProps } = params;
-    const handleKeyDown = (e) => {
-      if (!suggestionTerm) return;
-      if (e.key === 'Enter' && highlightedSuggestion) {
-        e.preventDefault();
-        handleSelect(highlightedSuggestion.label);
-      }
-    };
-
-    const inputProps = { ...autocompleteInputProps, ...inputDefaultProps, onKeyDown: handleKeyDown };
-    const autocompleteProps = { InputProps, disabled, fullWidth, id, inputProps };
-
-    return <TextField inputRef={inputRef} multiline select={false} {...autocompleteProps} />;
-  };
-
   const renderOption = (optionProps: any, label: string) => {
     const emoteFound = isEmote && EMOTES.find(({ name }) => name.toLowerCase() === label);
     const emoteValue = emoteFound ? { name: label, url: emoteFound.url } : undefined;
@@ -376,37 +358,104 @@ export default function TextareaWithSuggestions(props: Props) {
     return <TextareaSuggestionsItem key={label} uri={label} emote={emoteValue || emojiValue} {...optionProps} />;
   };
 
+  // Custom, textarea-anchored suggestion popper to avoid MUI Autocomplete's input requirement.
+  const [highlightIndex, setHighlightIndex] = React.useState(0);
+  const filteredOptions = React.useMemo(() => {
+    return allOptionsGrouped.filter(({ label }) => allMatches.includes(label));
+  }, [allMatches, allOptionsGrouped]);
+
+  React.useEffect(() => {
+    // reset highlight when list changes or popup reopens
+    if (!!suggestionTerm && !shouldClose) {
+      setHighlightIndex(0);
+      setHighlightedSuggestion(filteredOptions[0]);
+    }
+  }, [filteredOptions, shouldClose, suggestionTerm]);
+
+  function handleKeyDown(e: SyntheticKeyboardEvent<*>) {
+    if (!suggestionTerm || shouldClose) return;
+    if (!filteredOptions.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = (highlightIndex + 1) % filteredOptions.length;
+      setHighlightIndex(next);
+      setHighlightedSuggestion(filteredOptions[next]);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = (highlightIndex - 1 + filteredOptions.length) % filteredOptions.length;
+      setHighlightIndex(prev);
+      setHighlightedSuggestion(filteredOptions[prev]);
+    } else if (e.key === 'Enter') {
+      if (highlightedSuggestion) {
+        e.preventDefault();
+        handleSelect(highlightedSuggestion.label);
+      }
+    } else if (e.key === 'Escape') {
+      setClose(true);
+    }
+  }
+
+  const open = !!suggestionTerm && !shouldClose;
+
   return (
-    <Autocomplete
-      PopperComponent={AutocompletePopper}
-      autoHighlight
-      disableClearable
-      filterOptions={(options) => options.filter(({ label }) => allMatches.includes(label))}
-      freeSolo
-      fullWidth
-      getOptionLabel={(option) => option.label || ''}
-      groupBy={(option) => option.group}
-      id={id}
-      inputValue={messageValue}
-      loading={allMatches.length === 0 || showPlaceholder}
-      loadingText={showPlaceholder ? <BusyIndicator message={__('Searching...')} /> : __('Nothing found')}
-      onBlur={() => onBlur && onBlur()}
-      /* Different from onInputChange, onChange is only used for the selected value,
-        so here it is acting simply as a selection handler (see it as onSelect) */
-      onChange={(event, value) => handleSelect(value.label)}
-      onClose={(event, reason) => reason !== 'selectOption' && setClose(true)}
-      onFocus={() => onFocus && onFocus()}
-      onHighlightChange={(event, option) => setHighlightedSuggestion(option)}
-      onInputChange={(event, value, reason) => reason === 'input' && handleInputChange(value)}
-      onOpen={() => suggestionTerm && setClose(false)}
-      /* 'open' is for the popper box component, set to check for a valid term
-        or else it will be displayed all the time as empty (no options) */
-      open={!!suggestionTerm && !shouldClose}
-      options={allOptionsGrouped}
-      renderGroup={({ group, children }) => renderGroup(group, children)}
-      renderInput={(params) => renderInput(params)}
-      renderOption={(optionProps, option) => renderOption(optionProps, option.label)}
-    />
+    <>
+      <textarea
+        id={id}
+        ref={inputRef}
+        {...inputDefaultProps}
+        value={messageValue}
+        onChange={(e) => handleInputChange(e.target.value)}
+        onFocus={() => onFocus && onFocus()}
+        onBlur={() => onBlur && onBlur()}
+        onKeyDown={handleKeyDown}
+      />
+      <Popper open={open} anchorEl={inputRef && inputRef.current} placement="top">
+        <div className="MuiPaper-root">
+          {filteredOptions.length === 0 ? (
+            <div className="card">
+              {showPlaceholder ? <BusyIndicator message={__('Searching...')} /> : __('Nothing found')}
+            </div>
+          ) : (
+            <div className="card">
+              {/* Render grouped options */}
+              {(() => {
+                const groups = [];
+                let currentGroup = null;
+                let items = [];
+                filteredOptions.forEach((opt, idx) => {
+                  if (opt.group !== currentGroup) {
+                    if (items.length) {
+                      groups.push(renderGroup(currentGroup || '', items));
+                      items = [];
+                    }
+                    currentGroup = opt.group;
+                  }
+                  const isFocused = idx === highlightIndex;
+                  const optionProps = {
+                    className: `MuiAutocomplete-option${isFocused ? ' Mui-focused' : ''}`,
+                    role: 'option',
+                    'aria-selected': isFocused,
+                    onMouseEnter: () => {
+                      setHighlightIndex(idx);
+                      setHighlightedSuggestion(opt);
+                    },
+                    onMouseDown: (e) => {
+                      // prevent textarea blur
+                      e.preventDefault();
+                      handleSelect(opt.label);
+                    },
+                  };
+                  items.push(renderOption(optionProps, opt.label));
+                });
+                if (items.length) groups.push(renderGroup(currentGroup || '', items));
+                return groups;
+              })()}
+            </div>
+          )}
+        </div>
+      </Popper>
+    </>
   );
 }
 

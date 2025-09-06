@@ -38,7 +38,9 @@ import { selectDaemonSettings, makeSelectClientSetting, selectDisableAutoUpdates
 import { selectUser } from 'redux/selectors/user';
 import { doSyncLoop, doSetPrefsReady, doPreferenceGet, doPopulateSharedUserState } from 'redux/actions/sync';
 import { doAuthenticate } from 'redux/actions/user';
-import { lbrySettings as config, version as appVersion } from 'package.json';
+import pkg from '../../../package.json';
+const appVersion = pkg.version;
+const config = pkg.lbrySettings || {};
 import analytics, { SHARE_INTERNAL } from 'analytics';
 import { doSignOutCleanup } from 'util/saved-passwords';
 import { doNotificationSocketConnect } from 'redux/actions/websocket';
@@ -715,3 +717,4 @@ export function doSetIncognito(incognitoEnabled) {
     },
   };
 }
+

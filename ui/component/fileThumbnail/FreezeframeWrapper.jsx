@@ -21,7 +21,7 @@ const FreezeframeWrapper = (props) => {
   return (
     <div className={classnames(className, 'freezeframe-wrapper')}>
       <>
-        <img ref={imgRef} data-src={src} className="freezeframe-img" />
+        <img ref={imgRef} data-src={src} className="freezeframe-img" referrerPolicy="no-referrer" />
         {children}
       </>
     </div>

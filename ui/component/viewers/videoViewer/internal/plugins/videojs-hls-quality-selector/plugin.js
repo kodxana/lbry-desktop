@@ -1,6 +1,7 @@
 /* eslint-disable */
 import videojs from 'video.js';
-import { version as VERSION } from './package.json';
+import pkg from './package.json';
+const VERSION = pkg && pkg.version ? pkg.version : '0.0.0';
 import ConcreteButton from './ConcreteButton';
 import ConcreteMenuItem from './ConcreteMenuItem';
 

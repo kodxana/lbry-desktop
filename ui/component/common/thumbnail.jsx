@@ -21,6 +21,7 @@ const Thumbnail = (props: Props) => {
         className
       )}
       src={src}
+      referrerPolicy="no-referrer"
     />
   );
 };

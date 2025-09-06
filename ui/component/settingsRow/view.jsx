@@ -22,8 +22,8 @@ export default function SettingsRow(props: Props) {
       })}
     >
       <div className="settings__row--title">
-        <p>{title}</p>
-        {subtitle && <p className="settings__row--subtitle">{subtitle}</p>}
+        <div>{title}</div>
+        {subtitle && <div className="settings__row--subtitle">{subtitle}</div>}
         {footer && footer}
       </div>
       <div

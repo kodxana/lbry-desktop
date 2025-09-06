@@ -15,10 +15,7 @@ let baseConfig = {
   devtool: ifProduction('source-map', 'eval-cheap-module-source-map'),
   optimization: {
     minimizer: [
-      new TerserPlugin({
-        parallel: true,
-        sourceMap: true,
-      }),
+      new TerserPlugin({ parallel: true, terserOptions: { format: { comments: false } } }),
     ],
   },
   node: {
@@ -31,10 +28,18 @@ let baseConfig = {
     rules: [
       {
         test: /\.jsx?$/,
-        loader: 'babel-loader',
-        options: {
-          plugins: ['@babel/plugin-syntax-dynamic-import'],
-        },
+        use: [
+          // Speed up transpilation in dev and multi-core machines
+          { loader: 'thread-loader' },
+          {
+            loader: 'babel-loader',
+            options: {
+              cacheDirectory: true,
+              cacheCompression: false,
+              plugins: ['@babel/plugin-syntax-dynamic-import'],
+            },
+          },
+        ],
       },
       {
         test: /\.s?css$/,
@@ -89,7 +94,7 @@ let baseConfig = {
       'lodash.isempty': 'lodash-es/isEmpty',
       'lodash.forin': 'lodash-es/forIn',
       'lodash.clonedeep': 'lodash-es/cloneDeep',
-      ...ifProduction({}, { 'react-dom': '@hot-loader/react-dom' }),
+      // No hot-loader alias; React 18 + React Refresh handles HMR
     },
     symlinks: false,
   },

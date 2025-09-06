@@ -94,7 +94,8 @@ function Tab(props: TabProps) {
 
   // Each tab measures itself
   const ref = useRef();
-  const rect = useRect(ref, isSelected);
+  // useRect's second argument deprecated: pass options object.
+  const rect = useRect(ref, { observe: isSelected });
 
   // and calls up to the parent when it becomes selected
   // we useLayoutEffect to avoid flicker

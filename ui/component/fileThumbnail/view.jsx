@@ -33,7 +33,12 @@ function FileThumbnail(props: Props) {
     showPercentage,
   } = props;
 
-  const passedThumbnail = rawThumbnail && rawThumbnail.trim().replace(/^http:\/\//i, 'https://');
+  let passedThumbnail = rawThumbnail && rawThumbnail.trim();
+  // @if TARGET='web'
+  if (passedThumbnail) {
+    passedThumbnail = passedThumbnail.replace(/^http:\/\//i, 'https://');
+  }
+  // @endif
   const thumbnailFromClaim =
     uri && claim && claim.value && claim.value.thumbnail ? claim.value.thumbnail.url : undefined;
   const thumbnail = passedThumbnail || thumbnailFromClaim;
