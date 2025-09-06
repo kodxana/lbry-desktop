@@ -9,7 +9,6 @@ import { TO_TRAY_WHEN_CLOSED } from 'constants/settings';
 
 import setupBarMenu from './menu/setupBarMenu';
 import * as PAGES from 'constants/pages';
-const remote = require('@electron/remote/main');
 const shell = require('electron').shell;
 function GetAppLangCode() {
   // https://www.electronjs.org/docs/api/locales
@@ -55,8 +54,12 @@ export default appState => {
       webSecurity: !isDev,
       plugins: true,
       nodeIntegration: true,
+      // Temporarily disable contextIsolation until all Node/Electron usage is bridged via preload
       contextIsolation: false,
-      enableRemoteModule: true, // see about removing this
+      enableRemoteModule: false,
+      preload: (isDev
+        ? require('path').resolve(__dirname, '../../../electron/preload.js')
+        : require('path').join(__dirname, 'preload.js')),
     },
   };
   const lbryProto = 'lbry://';
@@ -64,7 +67,7 @@ export default appState => {
   const rendererURL = isDev ? `http://localhost:${WEBPACK_ELECTRON_PORT}` : `file://${__dirname}/index.html`;
 
   let window = new BrowserWindow(windowConfiguration);
-  remote.enable(window.webContents);
+  // remote module disabled; use IPC/preload instead
 
   // Let us register listeners on the window, so we can update the state
   // automatically (the listeners will be removed when the window is closed)
@@ -143,6 +146,7 @@ export default appState => {
 
   window.on('focus', () => {
     window.webContents.send('window-is-focused', null);
+    try { if (app.dock) app.dock.setBadge(''); } catch (e) {}
   });
 
   window.on('unresponsive', () => {
@@ -184,10 +188,23 @@ export default appState => {
         window.webContents.send('language-set', language);
       }
     });
+
+    // Fallback: ensure window is shown when content finished loading.
+    if (!startMinimized && !window.isVisible()) {
+      try { window.show(); } catch (e) {}
+    }
+  });
+
+  window.on('leave-full-screen', () => {
+    window.webContents.send('leave-full-screen');
   });
 
   window.webContents.on('crashed', () => {
     window = null;
+  });
+
+  window.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL) => {
+    console.error('Renderer failed to load:', errorCode, errorDescription, validatedURL);
   });
 
   window.webContents.setWindowOpenHandler((details) => {

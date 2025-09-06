@@ -6,7 +6,6 @@ import SplashScreen from 'component/splash';
 import * as ACTIONS from 'constants/action_types';
 import { changeZoomFactor } from 'util/zoomWindow';
 import { ipcRenderer, shell } from 'electron';
-import * as remote from '@electron/remote';
 import moment from 'moment';
 import * as MODALS from 'constants/modal_types';
 import React, { Fragment, useState, useEffect } from 'react';
@@ -54,8 +53,7 @@ import 'scss/all.scss';
 const startTime = Date.now();
 analytics.startupEvent();
 
-const { autoUpdater } = remote.require('electron-updater');
-autoUpdater.logger = remote.require('electron-log');
+// Updater events are bridged from main via IPC.
 
 if (LBRY_API_URL) {
   Lbryio.setLocalApi(LBRY_API_URL);
@@ -132,26 +130,6 @@ ipcRenderer.on('open-uri-requested', (event, url, newSession) => {
   handleError();
 });
 
-autoUpdater.on('download-progress', () => {
-  app.store.dispatch(doAutoUpdateDownloading());
-});
-
-autoUpdater.on('checking-for-update', () => {
-  app.store.dispatch(doAutoUpdateReset());
-});
-
-autoUpdater.on('update-available', (e) => {
-  app.store.dispatch(doNotifyUpdateAvailable(e));
-});
-
-autoUpdater.on('update-downloaded', () => {
-  app.store.dispatch(doAutoUpdateReset());
-});
-
-autoUpdater.on('error', () => {
-  app.store.dispatch(doAutoUpdateFail());
-});
-
 ipcRenderer.on('upgrade-installing-error', () => {
   app.store.dispatch(doShowUpgradeInstallationError());
 });
@@ -183,22 +161,19 @@ ipcRenderer.on('zoom-window', (event, action) => {
   changeZoomFactor(action);
 });
 
-const { dock } = remote.app;
-
 ipcRenderer.on('window-is-focused', () => {
-  if (!dock) return;
   app.store.dispatch({ type: ACTIONS.WINDOW_FOCUSED });
-  dock.setBadge('');
 });
 
 ipcRenderer.on('devtools-is-opened', () => {
   doLogWarningConsoleMessage();
 });
 
-// Force exit mode for html5 fullscreen api
-// See: https://github.com/electron/electron/issues/18188
-remote.getCurrentWindow().on('leave-full-screen', (event) => {
-  document.webkitExitFullscreen();
+// Force exit mode for html5 fullscreen api (from main)
+ipcRenderer.on('leave-full-screen', () => {
+  if (document && document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  }
 });
 
 document.addEventListener('click', (event) => {
@@ -230,34 +205,32 @@ function AppWrapper() {
     if (persistDone) {
       const state = store.getState();
       const enabled = makeSelectClientSetting(SETTINGS.ENABLE_PRERELEASE_UPDATES)(state);
-      if (enabled) {
-        autoUpdater.allowPrerelease = true;
-      } else {
-        autoUpdater.allowPrerelease = false;
-      }
+      ipcRenderer.send('set-allow-prerelease', !!enabled);
     }
   }, [persistDone]);
 
   useEffect(() => {
     // @if TARGET='app'
-    moment.locale(remote.app.getLocale());
+    (async () => {
+      try {
+        const loc = await ipcRenderer.invoke('get-app-locale');
+        if (loc) moment.locale(loc);
+      } catch (e) {}
+    })();
 
-    autoUpdater.on('error', (error) => {
-      console.error(error.message); // eslint-disable-line no-console
+    ipcRenderer.on('update-available', () => {
+      console.log('Update available');
     });
-
-    if (['win32', 'darwin'].includes(process.platform) || !!process.env.APPIMAGE) {
-      autoUpdater.on('update-available', () => {
-        console.log('Update available'); // eslint-disable-line no-console
-      });
-      autoUpdater.on('update-not-available', () => {
-        console.log('Update not available'); // eslint-disable-line no-console
-      });
-      autoUpdater.on('update-downloaded', () => {
-        console.log('Update downloaded'); // eslint-disable-line no-console
-        app.store.dispatch(doAutoUpdate());
-      });
-    }
+    ipcRenderer.on('update-not-available', () => {
+      console.log('Update not available');
+    });
+    ipcRenderer.on('update-downloaded', () => {
+      console.log('Update downloaded');
+      app.store.dispatch(doAutoUpdate());
+    });
+    ipcRenderer.on('update-error', () => {
+      app.store.dispatch(doAutoUpdateFail());
+    });
     // @endif
   }, []);
 

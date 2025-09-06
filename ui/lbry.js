@@ -1,5 +1,12 @@
 // @flow
-require('proxy-polyfill');
+try {
+  if (typeof Proxy === 'undefined') {
+    // Only load the polyfill if Proxy is missing (e.g., older browsers).
+    require('proxy-polyfill');
+  }
+} catch (e) {
+  // ignore: not needed in Electron/Node
+}
 
 const CHECK_DAEMON_STARTED_TRY_NUMBER = 200;
 //

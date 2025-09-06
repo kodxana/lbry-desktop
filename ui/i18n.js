@@ -1,5 +1,12 @@
 // @if TARGET='app'
-let fs = require('fs');
+let fs = null;
+try {
+  // Avoid crashing in non-Electron/web environments where 'require' isn't available
+  // eslint-disable-next-line no-undef
+  fs = typeof require !== 'undefined' ? require('fs') : null;
+} catch (e) {
+  fs = null;
+}
 // @endif
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -17,6 +24,7 @@ window.i18n_messages = window.i18n_messages || {};
 function saveMessageDesktop(message) {
   const messagesFilePath = __static + '/app-strings.json';
 
+  if (!fs) return; // Not available in web
   if (knownMessages === null) {
     try {
       knownMessages = JSON.parse(fs.readFileSync(messagesFilePath, 'utf-8'));

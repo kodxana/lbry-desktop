@@ -2322,5 +2322,11 @@
   "This will be visible in a few minutes after you submit this form.": "This will be visible in a few minutes after you submit this form.",
   "Anon --[used in <%anonymous% Reposted>]--": "Anon",
   "Your update is now pending. It will take a few minutes to appear for other users.": "Your update is now pending. It will take a few minutes to appear for other users.",
+  "Not now, my disk is almost full.": "Not now, my disk is almost full.",
+  "You can clear some space and check hosting settings later.": "You can clear some space and check hosting settings later.",
+  "Cannot get disk space information.": "Cannot get disk space information.",
+  "Top content in Polski": "Top content in Polski",
+  "Najnowsze od @lbry": "Najnowsze od @lbry",
+  "Najlepsze kanały na LBRY": "Najlepsze kanały na LBRY",
   "--end--": "--end--"
 }

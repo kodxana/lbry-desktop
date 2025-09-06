@@ -538,7 +538,7 @@ export function doWalletReconnect(toDefaultServer = false) {
       const { settings } = state;
       const { daemonStatus } = settings || {};
       const { wallet } = daemonStatus || {};
-      const availableServers = wallet.available_servers;
+      const availableServers = wallet && wallet.available_servers;
       if (!availableServers) {
         failed = true;
         dispatch({

@@ -17,7 +17,7 @@ renderConfig = merge(renderConfig, {
   entry: { ui: ['webpack-hot-middleware/client'] },
   plugins: [new webpack.HotModuleReplacementPlugin()],
   resolve: {
-    alias: { 'react-dom': '@hot-loader/react-dom' },
+    alias: { 'react-dom': '@hot-loader/react-dom', electron: require('path').resolve(__dirname, '../ui/electron-shim.js') },
     symlinks: false,
   },
 
@@ -54,10 +54,16 @@ mainInstance.waitUntilValid(() => {
   const electron = require('electron');
   const proc = require('child_process');
 
-  const child = proc.spawn(electron, ['./dist/electron/webpack/main.js']);
+  const child = proc.spawn(electron, ['./dist/electron/webpack/main.js'], {
+    env: { ...process.env, NODE_OPTIONS: '' },
+  });
 
   child.stdout.on('data', data => {
     console.log(data.toString());
+  });
+
+  child.stderr.on('data', data => {
+    console.error(data.toString());
   });
 
   process.on('SIGINT', function() {
@@ -68,3 +74,4 @@ mainInstance.waitUntilValid(() => {
   });
 });
 /* eslint-enable no-console */
+

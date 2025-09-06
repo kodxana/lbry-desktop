@@ -92,6 +92,10 @@ let plugins = [
   new ProvidePlugin({
     __: ['i18n.js', '__'],
   }),
+  // Renderer expects 'global' in some polyfills; map to 'window' only for renderer.
+  new DefinePlugin({
+    global: 'window',
+  }),
 ];
 
 // if (hasSentryToken) {
@@ -132,7 +136,42 @@ const renderConfig = {
       },
     ],
   },
+  resolve: {
+    alias: {
+      electron: path.resolve(__dirname, 'ui/electron-shim.js'),
+    },
+  },
   plugins,
 };
 
-module.exports = [merge(baseConfig, mainConfig), merge(baseConfig, renderConfig)];
+// Preload bundle (separate target and entry)
+const preloadConfig = {
+  target: 'electron-preload',
+  entry: {
+    preload: ['./electron/preload.js'],
+  },
+  output: {
+    filename: '[name].js',
+    path: __dirname + '/dist/electron/webpack',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        use: [
+          {
+            loader: 'preprocess-loader',
+            options: {
+              TARGET: 'app',
+              ppOptions: {
+                type: 'js',
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+
+module.exports = [merge(baseConfig, mainConfig), merge(baseConfig, renderConfig), merge(baseConfig, preloadConfig)];

@@ -1,5 +1,4 @@
-import { clipboard, shell } from 'electron';
-import * as remote from '@electron/remote';
+import { clipboard, shell, ipcRenderer } from 'electron';
 import { convertToShareLink } from 'util/lbryURI';
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -11,9 +10,7 @@ function injectDevelopmentTemplate(event, templates) {
     {
       label: 'Inspect element',
       accelerator: 'CmdOrCtrl+Shift+I',
-      click: () => {
-        remote.getCurrentWindow().inspectElement(screenX, screenY);
-      },
+      action: 'inspectAt',
     },
   ];
   if (templates.length > 0) {
@@ -61,7 +58,8 @@ export function openContextMenu(event, templates = [], canEdit = false, selectio
   }
 
   injectDevelopmentTemplate(event, templates);
-  remote.Menu.buildFromTemplate(templates).popup({});
+  const { screenX, screenY } = event;
+  ipcRenderer.send('open-context-menu', { template: templates, position: { x: screenX, y: screenY } });
 }
 
 // This function is used for the markdown description on the publish page
@@ -117,25 +115,24 @@ export function openClaimPreviewMenu(claim, event) {
 
     templates.push({
       label: 'Copy link',
-      click: () => {
-        clipboard.writeText(shareLink);
-      },
+      action: 'clipboard',
+      value: shareLink,
     });
 
     templates.push({ type: 'separator' });
 
     templates.push({
       label: 'Report content',
-      click: () => {
-        shell.openExternal(`https://lbry.com/dmca/${claimId}`);
-      },
+      action: 'openExternal',
+      value: `https://lbry.com/dmca/${claimId}`,
     });
   }
 
   injectDevelopmentTemplate(event, templates);
 
   if (templates.length !== 0) {
-    remote.Menu.buildFromTemplate(templates).popup({});
+    const { screenX, screenY } = event;
+    ipcRenderer.send('open-context-menu', { template: templates, position: { x: screenX, y: screenY } });
   }
   // @endif
 }

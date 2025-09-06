@@ -4,7 +4,7 @@
 import '@babel/polyfill';
 import SemVer from 'semver';
 import https from 'https';
-import { app, dialog, ipcMain, session, shell, BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, session, shell, BrowserWindow, Menu, clipboard } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import Lbry from 'lbry';
 import LbryFirstInstance from './LbryFirstInstance';
@@ -21,13 +21,11 @@ import { diskSpaceLinux, diskSpaceWindows, diskSpaceMac } from '../ui/util/disks
 
 const { download } = require('electron-dl');
 const mime = require('mime');
-const remote = require('@electron/remote/main');
 const os = require('os');
 const sudo = require('sudo-prompt');
 const probe = require('ffmpeg-probe');
 const MAX_IPC_SEND_BUFFER_SIZE = 500000000; // large files crash when serialized for ipc message
 
-remote.initialize();
 const filePath = path.join(process.resourcesPath, 'static', 'upgradeDisabled');
 let upgradeDisabled;
 try {
@@ -77,7 +75,10 @@ if (isDev && process.platform === 'win32') {
 app.name = 'LBRY';
 app.setAppUserModelId('io.lbry.LBRY');
 app.commandLine.appendSwitch('force-color-profile', 'srgb');
-app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+// Only relax Blink CORS in development if truly required.
+if (isDev) {
+  app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+}
 
 if (isDev) {
   // Disable security warnings in dev mode:
@@ -207,11 +208,19 @@ if (!gotSingleInstanceLock) {
     await startDaemon();
     startSandbox();
 
-    if (isDev) {
-      await installDevtools();
-    }
-    rendererWindow = createWindow(appState);
-    tray = createTray(rendererWindow);
+  if (isDev) {
+    await installDevtools();
+  }
+  rendererWindow = createWindow(appState);
+  tray = createTray(rendererWindow);
+
+  if (isDev) {
+    try { rendererWindow.webContents.openDevTools({ mode: 'detach' }); } catch (e) {}
+    // Last-resort visibility fallback in dev
+    setTimeout(() => {
+      try { if (!rendererWindow.isVisible()) rendererWindow.show(); } catch (e) {}
+    }, 2000);
+  }
 
     if (!isDev) {
       rendererWindow.webContents.on('devtools-opened', () => {
@@ -524,6 +533,9 @@ autoUpdater.on('update-downloaded', () => {
   if (appState.autoUpdateAccepted) {
     autoUpdater.quitAndInstall();
   }
+  if (rendererWindow) {
+    rendererWindow.webContents.send('update-downloaded');
+  }
 });
 
 autoUpdater.on('update-available', () => {
@@ -531,10 +543,16 @@ autoUpdater.on('update-available', () => {
     return;
   }
   updateState = UPDATE_STATE_UPDATES_FOUND;
+  if (rendererWindow) {
+    rendererWindow.webContents.send('update-available');
+  }
 });
 
 autoUpdater.on('update-not-available', () => {
   updateState = UPDATE_STATE_NO_UPDATES_FOUND;
+  if (rendererWindow) {
+    rendererWindow.webContents.send('update-not-available');
+  }
 });
 
 autoUpdater.on('error', () => {
@@ -543,6 +561,9 @@ autoUpdater.on('error', () => {
     return;
   }
   updateState = UPDATE_STATE_INIT;
+  if (rendererWindow) {
+    rendererWindow.webContents.send('update-error');
+  }
 });
 
 // Manual (.deb) update
@@ -666,4 +687,106 @@ ipcMain.on('upgrade', (event, installerPath) => {
     shell.openPath(installerPath);
   });
   app.quit();
+});
+
+// IPC helpers for renderer
+ipcMain.handle('get-app-locale', () => app.getLocale());
+
+ipcMain.handle('get-path', (event, key) => {
+  const allowed = new Set(['home', 'downloads', 'documents', 'desktop', 'temp']);
+  if (!allowed.has(key)) return undefined;
+  try { return app.getPath(key); } catch (e) { return undefined; }
+});
+
+ipcMain.handle('show-open-dialog', async (event, options) => {
+  const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
+  return dialog.showOpenDialog(win, options);
+});
+
+ipcMain.on('set-full-screen', (event, flag) => {
+  const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
+  if (win) win.setFullScreen(!!flag);
+});
+
+ipcMain.on('window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
+  if (win && !win.isMaximized()) win.maximize();
+});
+
+ipcMain.on('inspect-element', (event, pos) => {
+  if (!isDev) return;
+  const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
+  if (win && pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+    try { win.inspectElement(pos.x, pos.y); } catch (e) {}
+  }
+});
+
+ipcMain.on('app-quit', () => {
+  app.quit();
+});
+
+ipcMain.on('focusWindow', () => {
+  const win = rendererWindow || BrowserWindow.getAllWindows()[0];
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+});
+
+ipcMain.on('set-allow-prerelease', (event, value) => {
+  autoUpdater.allowPrerelease = !!value;
+});
+
+ipcMain.on('open-context-menu', (event, payload) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
+    const position = (payload && payload.position) || { x: 0, y: 0 };
+    const template = (payload && payload.template) || [];
+
+    const mapItem = (item) => {
+      if (!item || typeof item !== 'object') return undefined;
+      if (item.type === 'separator') return { type: 'separator' };
+      const out = {};
+      if (item.role) out.role = item.role;
+      if (item.label) out.label = item.label;
+      if (item.accelerator) out.accelerator = item.accelerator;
+      if (typeof item.enabled === 'boolean') out.enabled = item.enabled;
+      if (typeof item.checked === 'boolean') out.checked = item.checked;
+      if (item.type === 'checkbox' || item.type === 'radio') out.type = item.type;
+      if (Array.isArray(item.submenu)) out.submenu = item.submenu.map(mapItem).filter(Boolean);
+      if (item.action) {
+        out.click = () => {
+          switch (item.action) {
+            case 'clipboard':
+              try { clipboard.writeText(String(item.value || '')); } catch (e) {}
+              break;
+            case 'openExternal':
+              try { if (item.value) shell.openExternal(String(item.value)); } catch (e) {}
+              break;
+            case 'inspectAt':
+              if (win) {
+                try { win.inspectElement(position.x || 0, position.y || 0); } catch (e) {}
+              }
+              break;
+            case 'send':
+              try { event.sender.send(String(item.channel || 'context-menu-click'), item.value); } catch (e) {}
+              break;
+            default:
+              break;
+          }
+        };
+      }
+      return out;
+    };
+
+    const mapped = template.map(mapItem).filter(Boolean);
+    const menu = Menu.buildFromTemplate(mapped);
+    if (win) {
+      menu.popup({ window: win });
+    } else {
+      menu.popup();
+    }
+  } catch (e) {
+    // swallow
+  }
 });

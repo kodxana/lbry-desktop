@@ -1,7 +1,7 @@
 // @flow
 import * as React from 'react';
 import { shell } from 'electron';
-import * as remote from '@electron/remote';
+import { ipcRenderer } from 'electron';
 import Button from 'component/button';
 import CopyableText from 'component/copyableText';
 import AdmZip from 'adm-zip';
@@ -42,7 +42,7 @@ class WalletBackup extends React.PureComponent<Props, State> {
     this.setState({ errorMessage: null, successMessage: null });
   }
 
-  backupWalletDir(lbryumWalletDir: ?string) {
+  async backupWalletDir(lbryumWalletDir: ?string) {
     this.clearMessages();
 
     if (!lbryumWalletDir) {
@@ -58,9 +58,11 @@ class WalletBackup extends React.PureComponent<Props, State> {
     // Prefer placing backup in user's Downloads folder, then their home folder, and finally
     // right next to the lbryum folder itself.
     let outputDir = path.dirname(lbryumWalletDir);
-    if (remote && remote.app) {
-      outputDir = remote.app.getPath('downloads') || remote.app.getPath('home') || outputDir;
-    }
+    try {
+      const downloads = await ipcRenderer.invoke('get-path', 'downloads');
+      const home = await ipcRenderer.invoke('get-path', 'home');
+      outputDir = downloads || home || outputDir;
+    } catch (e) {}
 
     const outputPath = path.join(outputDir, outputFilename);
 

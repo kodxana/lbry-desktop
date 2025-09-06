@@ -30,6 +30,7 @@ type Props = {
   animationHidden: boolean,
   toggleSplashAnimation: () => void,
   clearWalletServers: () => void,
+  setWalletServers: () => void,
   doShowSnackBar: (string) => void,
 };
 
@@ -65,7 +66,8 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
   }
 
   componentDidMount() {
-    const { checkDaemonVersion } = this.props;
+    const { checkDaemonVersion, setWalletServers } = this.props;
+    try { setWalletServers(); } catch (e) {}
     this.adjustErrorTimeout();
 
     Lbry.connect()
@@ -106,7 +108,7 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
   }
 
   updateStatus() {
-    const { modal, notifyUnlockWallet, clearWalletServers, doShowSnackBar } = this.props;
+    const { modal, notifyUnlockWallet, clearWalletServers, setWalletServers, doShowSnackBar } = this.props;
     const { launchedModal } = this.state;
 
     Lbry.status().then((status) => {
@@ -134,10 +136,11 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
           }
           this.updateStatusCallback(sdkStatus, walletStatus);
         } else if (this.state.waitingForWallet > MAX_WALLET_WAIT && launchedModal === false && !modal) {
-          clearWalletServers();
+          // Switch to updated wallet servers when default servers are unavailable
+          setWalletServers();
           doShowSnackBar(
             __(
-              'The wallet server took a bit too long. Resetting defaults just in case. Shutdown (Cmd/Ctrl+Q) LBRY and restart if this continues.'
+              'The wallet server took too long. Switching to updated defaults. Restart the app if this continues.'
             )
           );
           this.setState({ waitingForWallet: 0 });

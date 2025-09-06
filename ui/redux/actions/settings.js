@@ -104,7 +104,7 @@ export function doSetDaemonSetting(key, value, doNotDispatch = false) {
   return (dispatch, getState) => {
     const state = getState();
     const ready = selectPrefsReady(state);
-    if (!ready) {
+    if (!ready && key !== DAEMON_SETTINGS.LBRYUM_SERVERS) {
       return dispatch(doAlertWaitingForSync());
     }
     dispatch({

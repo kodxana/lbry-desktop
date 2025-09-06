@@ -8,10 +8,8 @@
 
 import { Lbryio } from 'lbryinc';
 import * as Sentry from '@sentry/browser';
-import MatomoTracker from '@datapunt/matomo-tracker-js';
 import { history } from './store';
 import Native from 'native';
-import ElectronCookies from '@meetfranz/electron-cookies';
 import { generateInitialUrl } from 'util/url';
 import { MATOMO_ID, MATOMO_URL } from 'config';
 
@@ -21,10 +19,18 @@ const devInternalApis = process.env.LBRY_API_URL && process.env.LBRY_API_URL.inc
 export const SHARE_INTERNAL = 'shareInternal';
 const SHARE_THIRD_PARTY = 'shareThirdParty';
 
+// Enable Electron cookies only when available to avoid hard dependency on remote APIs.
 if (isProduction) {
-  ElectronCookies.enable({
-    origin: 'https://lbry.tv',
-  });
+  try {
+    // Dynamically require to avoid initializing module in development.
+    // eslint-disable-next-line global-require
+    const ElectronCookies = require('@meetfranz/electron-cookies');
+    if (ElectronCookies && ElectronCookies.enable) {
+      ElectronCookies.enable({ origin: 'https://lbry.tv' });
+    }
+  } catch (e) {
+    // ignore if not available
+  }
 }
 
 type Analytics = {
@@ -247,14 +253,15 @@ const analytics: Analytics = {
 function sendMatomoEvent(category, action, name, value) {
   if (internalAnalyticsEnabled) {
     const event = { category, action, name, value };
-    MatomoInstance.trackEvent(event);
+    if (MatomoInstance && MatomoInstance.trackEvent) MatomoInstance.trackEvent(event);
   }
 }
 
-const MatomoInstance = new MatomoTracker({
-  urlBase: MATOMO_URL,
-  siteId: MATOMO_ID, // optional, default value: `1`
-});
+// Disable Matomo: provide a no-op tracker to avoid external script loads.
+const MatomoInstance = {
+  trackEvent: () => {},
+  trackPageView: () => {},
+};
 
 analytics.pageView(generateInitialUrl(window.location.hash));
 
