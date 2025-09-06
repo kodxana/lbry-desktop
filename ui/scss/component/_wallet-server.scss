@@ -1,0 +1,76 @@
+.wallet-status {
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-m);
+    margin-bottom: var(--spacing-s);
+  }
+
+  &__title {
+    margin: 0;
+  }
+
+  &__legend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-m);
+
+    .status-dot {
+      margin-right: var(--spacing-xs);
+    }
+  }
+
+  &__table-header .table__item {
+    font-weight: 600;
+    color: var(--color-text-subtitle);
+  }
+
+  &__row .table__item {
+    vertical-align: middle;
+  }
+
+  &__col--status .wallet-status__label {
+    margin-left: var(--spacing-xs);
+  }
+
+  &__actions {
+    margin-top: var(--spacing-s);
+  }
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-gray-3);
+}
+.status-dot--online {
+  background-color: var(--color-primary);
+}
+.status-dot--offline {
+  background-color: var(--color-danger);
+}
+.wallet-status__table {
+  width: 100%;
+  table-layout: fixed;
+
+  th,
+  td {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .wallet-status__col--port {
+    width: 90px;
+  }
+  .wallet-status__col--status {
+    width: 160px;
+    white-space: nowrap;
+  }
+  .wallet-status__col--latency {
+    width: 110px;
+    white-space: nowrap;
+  }
+}
+

@@ -24,6 +24,7 @@ const mime = require('mime');
 const os = require('os');
 const sudo = require('sudo-prompt');
 const probe = require('ffmpeg-probe');
+const { execSync } = require('child_process');
 const MAX_IPC_SEND_BUFFER_SIZE = 500000000; // large files crash when serialized for ipc message
 
 const filePath = path.join(process.resourcesPath, 'static', 'upgradeDisabled');
@@ -84,6 +85,35 @@ if (isDev) {
   process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
 }
 
+function hasLbrynetProcess() {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync('tasklist /FI "IMAGENAME eq lbrynet.exe" /FO CSV /NH', { encoding: 'utf8' });
+      return /lbrynet\.exe/i.test(out);
+    }
+    // macOS / Linux
+    const out = execSync('pgrep -x lbrynet || true', { encoding: 'utf8' });
+    return out.trim().length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+function waitForDaemonReady(timeoutMs = 15000, intervalMs = 500) {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => {
+      Lbry.status()
+        .then(() => resolve(true))
+        .catch(() => {
+          if (Date.now() - started >= timeoutMs) return resolve(false);
+          setTimeout(tick, intervalMs);
+        });
+    };
+    tick();
+  });
+}
+
 const startDaemon = async () => {
   let isDaemonRunning = false;
 
@@ -93,8 +123,45 @@ const startDaemon = async () => {
       console.log('SDK already running');
     })
     .catch(() => {
-      console.log('Starting SDK');
+      console.log('SDK not reachable on first attempt');
     });
+
+  if (!isDaemonRunning && hasLbrynetProcess()) {
+    let choice = 0; // 0 = continue, 1 = restart
+    try {
+      choice = dialog.showMessageBoxSync({
+        type: 'question',
+        buttons: ['Continue', 'Restart SDK'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'LBRY SDK Running',
+        message: 'An existing LBRY SDK (lbrynet) instance is already running. Connect to it or restart the SDK?',
+      });
+    } catch (e) {}
+
+    if (choice === 1) {
+      try {
+        await Lbry.stop();
+      } catch (e) {
+        try {
+          if (process.platform === 'win32') {
+            execSync('taskkill /IM lbrynet.exe /T /F');
+          } else {
+            execSync('pkill -f lbrynet');
+          }
+        } catch (_) {}
+      }
+    } else {
+      console.log('Detected existing lbrynet process; waiting for readiness...');
+      isDaemonRunning = await waitForDaemonReady(15000, 500);
+      if (isDaemonRunning) {
+        if (rendererWindow) rendererWindow.webContents.send('daemon-reused');
+        console.log('Connected to existing lbrynet instance.');
+      } else {
+        console.log('Existing lbrynet did not respond in time; attempting fresh launch.');
+      }
+    }
+  }
 
   if (!isDaemonRunning) {
     daemon = new Daemon();
@@ -204,8 +271,12 @@ if (!gotSingleInstanceLock) {
     await startDaemon();
     startSandbox();
 
-    if (isDev) {
-      await installDevtools();
+    if (isDev && process.env.ELECTRON_DEVTOOLS === 'true') {
+      try {
+        await installDevtools();
+      } catch (e) {
+        // ignore devtools install errors by default
+      }
     }
     rendererWindow = createWindow(appState);
     tray = createTray(rendererWindow);

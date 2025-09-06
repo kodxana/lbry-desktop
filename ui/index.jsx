@@ -169,6 +169,14 @@ ipcRenderer.on('devtools-is-opened', () => {
   doLogWarningConsoleMessage();
 });
 
+ipcRenderer.on('daemon-reused', () => {
+  try {
+    app.store.dispatch(
+      doToast({ message: __('Connected to an existing LBRY SDK instance'), isError: false })
+    );
+  } catch (e) {}
+});
+
 // Force exit mode for html5 fullscreen api (from main)
 ipcRenderer.on('leave-full-screen', () => {
   if (document && document.webkitExitFullscreen) {

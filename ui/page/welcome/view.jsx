@@ -1,6 +1,5 @@
 // @flow
 import React from 'react';
-import PrivacyAgreement from 'component/privacyAgreement';
 import HostingSplash from 'component/hostingSplash';
 import HostingSplashCustom from 'component/hostingSplashCustom';
 import WelcomeSplash from 'component/welcomeSplash';
@@ -8,9 +7,9 @@ import Page from 'component/page';
 import { useHistory } from 'react-router-dom';
 
 const SPLASH_PAGE = 0;
-const PRIVACY_PAGE = 1;
-const HOSTING_PAGE = 2;
-const HOSTING_ADVANCED = 3;
+// Privacy page removed; skip directly to hosting pages.
+const HOSTING_PAGE = 1;
+const HOSTING_ADVANCED = 2;
 
 type DaemonStatus = {
   disk_space: {
@@ -46,8 +45,6 @@ export default function Welcome(props: Props) {
 
   const handleNextPage = () => {
     if (welcomePage === SPLASH_PAGE) {
-      setWelcomePage(PRIVACY_PAGE);
-    } else if (welcomePage === PRIVACY_PAGE) {
       setWelcomePage(HOSTING_PAGE);
     } else if (welcomePage === HOSTING_PAGE) {
       setWelcomePage(HOSTING_ADVANCED);
@@ -68,7 +65,6 @@ export default function Welcome(props: Props) {
   return (
     <Page noHeader noSideNavigation>
       {welcomePage === SPLASH_PAGE && <WelcomeSplash handleNextPage={handleNextPage} />}
-      {welcomePage === PRIVACY_PAGE && <PrivacyAgreement handleNextPage={handleNextPage} />}
       {welcomePage === HOSTING_PAGE && <HostingSplash handleNextPage={handleNextPage} handleDone={handleDone} />}
       {welcomePage === HOSTING_ADVANCED && (
         <HostingSplashCustom handleNextPage={handleDone} handleGoBack={handleGoBack} />

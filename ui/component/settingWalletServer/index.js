@@ -12,6 +12,7 @@ import {
   doSaveCustomWalletServers,
 } from 'redux/actions/settings';
 import { selectSavedWalletServers, selectDaemonStatus, selectHasWalletServerPrefs } from 'redux/selectors/settings';
+import { stringifyServerParam } from 'util/sync-settings';
 import SettingWalletServer from './view';
 
 const select = (state) => ({
@@ -28,6 +29,10 @@ const perform = (dispatch) => ({
   clearWalletServers: () => dispatch(doClearDaemonSetting(DAEMON_SETTINGS.LBRYUM_SERVERS)),
   getDaemonStatus: () => dispatch(doGetDaemonStatus()),
   saveServerConfig: (servers) => dispatch(doSaveCustomWalletServers(servers)),
+  setDefaultWalletServer: () => {
+    const servers = stringifyServerParam([[`s1.lbry.network`, '50001']]);
+    dispatch(doSetDaemonSetting(DAEMON_SETTINGS.LBRYUM_SERVERS, servers));
+  },
 });
 
 export default connect(select, perform)(SettingWalletServer);

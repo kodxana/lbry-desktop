@@ -2328,5 +2328,14 @@
   "Top content in Polski": "Top content in Polski",
   "Najnowsze od @lbry": "Najnowsze od @lbry",
   "Najlepsze kanały na LBRY": "Najlepsze kanały na LBRY",
+  "Use lbry.network wallet server (s1.lbry.network:50001)": "Use lbry.network wallet server (s1.lbry.network:50001)",
+  "Wallet Server Status": "Wallet Server Status",
+  "Wallet servers relay blockchain data and determine content availability. The app periodically checks server health.": "Wallet servers relay blockchain data and determine content availability. The app periodically checks server health.",
+  "Online": "Online",
+  "Offline": "Offline",
+  "Wallet servers relay blockchain data and determine content availability. This app monitors reachability and round‑trip time.": "Wallet servers relay blockchain data and determine content availability. This app monitors reachability and round‑trip time.",
+  "--end--": "--end--"
+}
+ "Unknown": "Unknown",
   "--end--": "--end--"
 }

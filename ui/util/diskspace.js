@@ -32,33 +32,43 @@ export const diskSpaceMac = (path) => {
 
 export const diskSpaceWindows = (path) => {
   return new Promise((resolve, reject) => {
+    const pathDrive = path.split(':')[0] + ':';
+
+    const parseAndResolve = (freeBytes, totalBytes) =>
+      resolve({ total: Math.floor(Number(totalBytes) / 1024), free: Math.floor(Number(freeBytes) / 1024) });
+
+    // First try legacy WMIC (may not exist on newer Windows).
     exec(`wmic logicaldisk get size,freespace,caption`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
+      if (!error && !stderr) {
+        try {
+          const stdoutLines = stdout.split('\n');
+          const driveLine = stdoutLines.find((line) => line.trim().startsWith(pathDrive));
+          if (driveLine) {
+            const parts = driveLine.trim().split(/\s+/);
+            const freeSpace = parts[1];
+            const totalSize = parts[2];
+            return parseAndResolve(freeSpace, totalSize);
+          }
+        } catch (e) {
+          // fall through to PowerShell
+        }
       }
-      if (stderr) {
-        return reject(new Error(stderr));
-      }
 
-      // Drive used in the path (ie, C:, D:, etc.)
-      const pathDrive = path.split(':')[0] + ':';
-
-      // Sample outout:
-      // Caption  FreeSpace    Size
-      // C:       66218471424  189529804800
-      // D:
-      // E:       536829952    536854528
-      const stdoutLines = stdout.split('\n');
-      // Find the drive used in the path.
-      const driveLine = stdoutLines.find((line) => line.startsWith(pathDrive));
-      // Parse the values in each column by filtering out the
-      // empty spaces.
-      // eslint-disable-next-line no-unused-vars
-      const [drive, freeSpace, totalSize] = driveLine.split(' ').filter((x) => x);
-
-      resolve({
-        total: Math.floor(Number(totalSize) / 1024),
-        free: Math.floor(Number(freeSpace) / 1024),
+      // Fallback: PowerShell CIM query (Windows 10/11)
+      const ps = `Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,Size,FreeSpace | ConvertTo-Json -Compress`;
+      exec(`powershell -NoProfile -Command "${ps}"`, (psErr, psOut) => {
+        if (psErr) return reject(psErr);
+        try {
+          const data = JSON.parse(psOut);
+          const arr = Array.isArray(data) ? data : [data];
+          const match = arr.find((d) => String(d.DeviceID).toUpperCase() === pathDrive.toUpperCase());
+          if (match) {
+            return parseAndResolve(match.FreeSpace || 0, match.Size || 0);
+          }
+          return reject(new Error('Drive not found in PowerShell output'));
+        } catch (e) {
+          return reject(e);
+        }
       });
     });
   });

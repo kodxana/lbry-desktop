@@ -25,6 +25,7 @@ type Props = {
   getDaemonStatus: () => void,
   setCustomWalletServers: (any) => void,
   clearWalletServers: () => void,
+  setDefaultWalletServer: () => void,
   customWalletServers: ServerConfig,
   saveServerConfig: (Array<ServerTuple>) => void,
   hasWalletServerPrefs: boolean,
@@ -40,6 +41,7 @@ function SettingWalletServer(props: Props) {
     setCustomWalletServers,
     getDaemonStatus,
     clearWalletServers,
+    setDefaultWalletServer,
     saveServerConfig,
     customWalletServers,
     hasWalletServerPrefs,
@@ -130,10 +132,11 @@ function SettingWalletServer(props: Props) {
           type="radio"
           name="default_wallet_servers"
           checked={!usingCustomServer}
-          label={__('Use official LBRY wallet servers')}
+          label={__('Use lbry.network wallet server (s1.lbry.network:50001)')}
           onChange={(e) => {
             if (e.target.checked) {
-              doClear();
+              setUsingCustomServer(false);
+              setDefaultWalletServer();
             }
           }}
         />
@@ -149,6 +152,62 @@ function SettingWalletServer(props: Props) {
           }}
           label={__('Use custom wallet servers')}
         />
+
+        {/* Status panel */}
+        <div className="section section--padded card--inline form-field__internal-option wallet-status">
+          <div className="wallet-status__header">
+            <h3 className="wallet-status__title">{__('Wallet Server Status')}</h3>
+            <div className="wallet-status__legend">
+              <span className="status-dot status-dot--online" /> {__('Online')}
+              <span className="status-dot status-dot--offline" /> {__('Offline')}
+            </div>
+          </div>
+          <div className="help">
+            {__(
+              'Wallet servers relay blockchain data and determine content availability. This app monitors reachability and round‑trip time.'
+            )}
+          </div>
+
+          {activeWalletServers && activeWalletServers.length > 0 ? (
+            <table className="table table--condensed wallet-status__table">
+              <thead>
+                <tr>
+                  <th>{__('Host')}</th>
+                  <th className="wallet-status__col--port">{__('Port')}</th>
+                  <th className="wallet-status__col--status">{__('Status')}</th>
+                  <th className="wallet-status__col--latency">{__('Latency')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeWalletServers.map((s) => {
+                  const isUp = !!s.availability;
+                  let latencyText = __('Unknown');
+                  if (typeof s.latency === 'number') {
+                    const ms = s.latency > 0 && s.latency < 1 ? Math.round(s.latency * 1000) : Math.round(s.latency);
+                    latencyText = ms <= 0 ? '<1 ms' : `${ms} ms`;
+                  }
+                  return (
+                    <tr key={`${s.host}:${s.port}`}>
+                      <td>{s.host}</td>
+                      <td className="wallet-status__col--port">{s.port}</td>
+                      <td className="wallet-status__col--status">
+                        <span className={`status-dot ${isUp ? 'status-dot--online' : 'status-dot--offline'}`} />
+                        <span className="wallet-status__label">{isUp ? __('Online') : __('Offline')}</span>
+                      </td>
+                      <td className="wallet-status__col--latency">{latencyText}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div className="help">{__('No status yet. Try Refresh.')}</div>
+          )}
+
+          <div className="card__actions wallet-status__actions">
+            <Button button="secondary" label={__('Refresh')} onClick={() => getDaemonStatus()} />
+          </div>
+        </div>
 
         {showCustomServers && (
           <div>

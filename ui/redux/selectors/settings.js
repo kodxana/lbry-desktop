@@ -63,7 +63,15 @@ export const makeSelectSharedPreferencesForKey = (key) =>
 export const selectHasWalletServerPrefs = createSelector(
   makeSelectSharedPreferencesForKey(DAEMON_SETTINGS.LBRYUM_SERVERS),
   (servers) => {
-    return !!(servers && servers.length);
+    if (!servers || !servers.length) return false;
+    // Treat the default s1.lbry.network:50001 as the non-custom baseline
+    try {
+      const flat = Array.isArray(servers) ? servers.map(String) : [];
+      const isDefaultS1 = flat.length === 1 && flat[0] === 's1.lbry.network:50001';
+      return !isDefaultS1;
+    } catch (e) {
+      return true;
+    }
   }
 );
 

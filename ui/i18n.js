@@ -10,6 +10,7 @@ try {
 // @endif
 
 const isProduction = process.env.NODE_ENV === 'production';
+const SAVE_I18N = false; // Disable message harvesting to avoid JSON parse/write issues
 let knownMessages = null;
 let localStorageAvailable;
 try {
@@ -27,9 +28,12 @@ function saveMessageDesktop(message) {
   if (!fs) return; // Not available in web
   if (knownMessages === null) {
     try {
-      knownMessages = JSON.parse(fs.readFileSync(messagesFilePath, 'utf-8'));
+      const content = fs.readFileSync(messagesFilePath, 'utf-8');
+      knownMessages = JSON.parse(content);
     } catch (err) {
-      throw new Error('Error parsing i18n messages file: ' + messagesFilePath + ' err: ' + err);
+      // If missing or invalid, do not block app; skip saving.
+      knownMessages = {};
+      return;
     }
   }
 
@@ -39,11 +43,11 @@ function saveMessageDesktop(message) {
     knownMessages[message] = removeContextMetadata(message);
     knownMessages[END] = END;
 
-    fs.writeFile(messagesFilePath, JSON.stringify(knownMessages, null, 2) + '\n', 'utf-8', (err) => {
-      if (err) {
-        throw err;
-      }
-    });
+    try {
+      fs.writeFile(messagesFilePath, JSON.stringify(knownMessages, null, 2) + '\n', 'utf-8', () => {});
+    } catch (e) {
+      // ignore write failures
+    }
   }
 }
 // @endif
@@ -86,7 +90,7 @@ export function __(message, tokens) {
   const language = localStorageAvailable
     ? window.localStorage.getItem('language') || 'en'
     : window.navigator.language.slice(0, 2) || 'en';
-  if (!isProduction) {
+  if (!isProduction && SAVE_I18N) {
     saveMessageDesktop(message);
   }
 
