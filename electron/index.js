@@ -741,16 +741,31 @@ ipcMain.on('upgrade', (event, installerPath) => {
 
   // Prevent .deb package from opening with archive manager (Ubuntu >= 20)
   if (process.platform === 'linux' && !process.env.APPIMAGE) {
-    sudo.exec(`dpkg -i ${installerPath}`, { name: app.name }, (err, stdout, stderr) => {
-      if (err || stderr) {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const resolved = path.resolve(String(installerPath || ''));
+      // Basic validation: absolute path, .deb extension, file exists
+      if (!path.isAbsolute(resolved) || path.extname(resolved) !== '.deb' || !fs.existsSync(resolved)) {
         rendererWindow.webContents.send('upgrade-installing-error');
         return;
       }
+      // POSIX-safe single-quote escaping
+      const safe = `'${resolved.replace(/'/g, "'\\''")}'`;
+      sudo.exec(`dpkg -i ${safe}`, { name: app.name }, (err, stdout, stderr) => {
+        if (err || stderr) {
+          rendererWindow.webContents.send('upgrade-installing-error');
+          return;
+        }
 
-      // Re-launch the application when the installation finishes.
-      app.relaunch();
-      app.quit();
-    });
+        // Re-launch the application when the installation finishes.
+        app.relaunch();
+        app.quit();
+      });
+    } catch (e) {
+      rendererWindow.webContents.send('upgrade-installing-error');
+      return;
+    }
 
     return;
   }

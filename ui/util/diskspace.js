@@ -1,33 +1,41 @@
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 export const diskSpaceLinux = (path) => {
   return new Promise((resolve, reject) => {
-    exec(`df ${path}`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
+    // Use spawn with args to avoid command injection; '--' to terminate option parsing.
+    const df = spawn('df', ['-k', '--', path]);
+    let out = '';
+    let err = '';
+    df.stdout.on('data', (d) => (out += d.toString()));
+    df.stderr.on('data', (d) => (err += d.toString()));
+    df.on('error', (e) => reject(e));
+    df.on('close', (code) => {
+      if (code !== 0 || err) {
+        return reject(new Error(err || `df exited with code ${code}`));
       }
-      if (stderr) {
-        return reject(new Error(stderr));
+      try {
+        const lines = out.trim().split('\n');
+        // Find the last non-empty, non-header line.
+        const dataLine = lines.reverse().find((ln) => ln && !/^Filesystem/i.test(ln));
+        if (!dataLine) return reject(new Error('Unexpected df output'));
+        const parts = dataLine.trim().split(/\s+/);
+        // Expected columns: Filesystem, 1K-blocks, Used, Available, Use%, Mounted on
+        const total = Number(parts[1]);
+        const free = Number(parts[3]);
+        if (!Number.isFinite(total) || !Number.isFinite(free)) {
+          return reject(new Error('Failed to parse df output'));
+        }
+        resolve({ total, free });
+      } catch (e) {
+        reject(e);
       }
-      // Sample df command output:
-      // Filesystem     1K-blocks      Used Available Use% Mounted on
-      // C:\            185087700 120552556  64535144  66% /mnt/c
-      const dfResult = stdout.split('\n')[1].split(/\s+/);
-      resolve({
-        total: Number(dfResult[1]),
-        free: Number(dfResult[3]),
-      });
     });
   });
 };
 
 export const diskSpaceMac = (path) => {
-  // Escape spaces in path to prevent errors.
-  // Example:
-  // "/Users/username/Library/Application Support/LBRY" gets updated to
-  // "/Users/username/Library/Application\\ Support/LBRY"
-  const escapedPath = path.replace(/(\s+)/g, '\\$1');
-  return diskSpaceLinux(escapedPath);
+  // Same implementation as Linux; rely on spawn arg escaping.
+  return diskSpaceLinux(path);
 };
 
 export const diskSpaceWindows = (path) => {
