@@ -1,4 +1,4 @@
-$control-bar-height: 2.5rem;
+﻿$control-bar-height: 2.5rem;
 $control-bar-font-size: 0.8rem;
 $control-bar-popup-font-size: 0.8rem;
 $control-bar-icon-size: 0.8rem;
@@ -93,6 +93,20 @@ $control-bar-icon-size: 0.8rem;
       transition: 0.1s;
       margin-top: 2px;
     }
+  }
+}
+
+// Net stats in the control bar (rate + peers)
+.vjs-netstats-control {
+  display: flex !important;
+  align-items: center;
+  padding: 0 var(--spacing-xs);
+  color: var(--color-text-help);
+  font-size: $control-bar-font-size;
+
+  .vjs-netstats-content {
+    opacity: 0.9;
+    white-space: nowrap;
   }
 }
 
@@ -283,3 +297,9 @@ button.vjs-big-play-button {
 .vjs-fullscreen-control {
   order: 12 !important;
 }
+
+@media (max-width: 560px) { .vjs-netstats-control { display: none !important; } }
+
+.vjs-netstats-control { margin: 0 var(--spacing-s); white-space: nowrap; }
+
+.vjs-netstats-control { margin: 0 var(--spacing-s); white-space: nowrap; }

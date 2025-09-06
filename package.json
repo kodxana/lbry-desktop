@@ -45,6 +45,7 @@
     "@mui/material": "^5.2.1",
     "@ungap/from-entries": "^0.2.1",
     "auto-launch": "^5.0.5",
+    "dashjs": "^4.7.1",
     "electron-dl": "^3.2.0",
     "electron-log": "^4.4.8",
     "electron-notarize": "^1.0.0",
@@ -62,7 +63,8 @@
     "react-datetime-picker": "^3.4.3",
     "source-map-explorer": "^2.5.2",
     "sudo-prompt": "^9.2.1",
-    "tempy": "^0.6.0"
+    "tempy": "^0.6.0",
+    "videojs-contrib-dash": "^2.11.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",

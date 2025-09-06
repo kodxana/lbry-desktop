@@ -20,12 +20,19 @@ const VideoJsFunctions = ({
         let finalType = sourceType;
         let finalSource = source;
 
-        // override type if we receive an .m3u8 (transcoded mp4)
+        // Override type if we receive an HLS/DASH manifest via redirect or the source already points to one.
         // do we need to check if explicitly redirected
         // or is checking extension only a safer method
         if (response && response.redirected && response.url && response.url.endsWith('m3u8')) {
           finalType = 'application/x-mpegURL';
           finalSource = response.url;
+        }
+
+        // Detect DASH (.mpd)
+        const urlToCheck = (response && response.redirected && response.url) || source;
+        if (urlToCheck && /\.mpd(\?.*)?$/i.test(urlToCheck)) {
+          finalType = 'application/dash+xml';
+          finalSource = urlToCheck;
         }
 
         // Modify video source in options
@@ -53,6 +60,7 @@ const VideoJsFunctions = ({
     wrapper.setAttribute('data-vjs-player', 'true');
     const el = document.createElement(isAudio ? 'audio' : 'video');
     el.className = 'video-js vjs-big-play-centered ';
+    try { el.setAttribute('crossorigin', 'anonymous'); } catch (e) {}
     wrapper.appendChild(el);
 
     container.appendChild(wrapper);

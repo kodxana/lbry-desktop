@@ -24,7 +24,7 @@ const mime = require('mime');
 const os = require('os');
 const sudo = require('sudo-prompt');
 const probe = require('ffmpeg-probe');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const MAX_IPC_SEND_BUFFER_SIZE = 500000000; // large files crash when serialized for ipc message
 
 const filePath = path.join(process.resourcesPath, 'static', 'upgradeDisabled');
@@ -813,6 +813,165 @@ ipcMain.on('focusWindow', () => {
 
 ipcMain.on('set-allow-prerelease', (event, value) => {
   autoUpdater.allowPrerelease = !!value;
+});
+
+// Diagnostics: expose lightweight SDK info to renderer
+ipcMain.handle('get-daemon-status', async () => {
+  try {
+    const st = await Lbry.status();
+    let peerCount = undefined;
+    const conns = st && st.connections;
+    if (Array.isArray(conns)) {
+      peerCount = conns.length;
+    } else if (conns && typeof conns === 'object') {
+      const incoming = Array.isArray(conns.incoming) ? conns.incoming.length : 0;
+      const outgoing = Array.isArray(conns.outgoing) ? conns.outgoing.length : 0;
+      const connected = Array.isArray(conns.connected) ? conns.connected.length : 0;
+      peerCount = Math.max(connected, incoming + outgoing) || undefined;
+    }
+    if (!peerCount && st && st.dht) {
+      peerCount = st.dht.nodes || st.dht.node_count || undefined;
+    }
+    return {
+      peerCount,
+    };
+  } catch (e) {
+    return { error: e && e.message };
+  }
+});
+
+ipcMain.handle('get-file-status', async (event, claimId) => {
+  if (!claimId) return null;
+  try {
+    const res = await Lbry.file_list({ claim_id: claimId, full_status: true, page: 1, page_size: 1 });
+    const item = res && res.items && res.items[0];
+    if (!item) return null;
+    // Return only the bits we need for diagnostics
+    return {
+      completed: item.completed,
+      written_bytes: item.written_bytes,
+      total_bytes: item.total_bytes || item.total_bytes_estimate,
+      blobs_completed: item.blobs_completed,
+      blobs_in_stream: item.blobs_in_stream,
+      speed: item.download_speed, // may be undefined on older SDKs
+      sd_hash: item.sd_hash,
+    };
+  } catch (e) {
+    return { error: e && e.message };
+  }
+});
+
+ipcMain.handle('get-peer-count', async () => {
+  try {
+    // Attempt to use a peer_list style call if supported by the SDK
+    let res = null;
+    try {
+      // Some SDKs expose 'peer_list'. The lbry-js wrapper proxies unknown calls too.
+      // Call without pagination first; if it errors, try with simple paging.
+      res = await Lbry.peer_list();
+    } catch (e) {
+      try {
+        res = await Lbry.peer_list({ page: 1, page_size: 9999 });
+      } catch (_) {}
+    }
+
+    if (res) {
+      if (Array.isArray(res)) return { peers: res.length };
+      if (res.items && Array.isArray(res.items)) return { peers: res.items.length };
+      if (typeof res.num_peers === 'number') return { peers: res.num_peers };
+    }
+    // Fallback to status-based estimation
+    const st = await Lbry.status();
+    let peerCount = undefined;
+    const conns = st && st.connections;
+    if (Array.isArray(conns)) {
+      peerCount = conns.length;
+    } else if (conns && typeof conns === 'object') {
+      const incoming = Array.isArray(conns.incoming) ? conns.incoming.length : 0;
+      const outgoing = Array.isArray(conns.outgoing) ? conns.outgoing.length : 0;
+      const connected = Array.isArray(conns.connected) ? conns.connected.length : 0;
+      peerCount = Math.max(connected, incoming + outgoing) || undefined;
+    }
+    if (!peerCount && st && st.dht) {
+      peerCount = st.dht.nodes || st.dht.node_count || undefined;
+    }
+
+    // Last-resort: infer from recent log lines (unique IPs that downloaded blobs)
+    if (!peerCount) {
+      try {
+        const settings = await Lbry.settings_get();
+        const dataDir = settings && settings.data_dir;
+        if (dataDir) {
+          const logPath = path.join(dataDir, 'lbrynet.log');
+          const maxBytes = 200000; // read last ~200KB
+          if (fs.existsSync(logPath)) {
+            const stat = fs.statSync(logPath);
+            const fd = fs.openSync(logPath, 'r');
+            const start = Math.max(0, stat.size - maxBytes);
+            const buf = Buffer.alloc(Math.min(maxBytes, stat.size));
+            fs.readSync(fd, buf, 0, buf.length, start);
+            fs.closeSync(fd);
+            const text = buf.toString('utf8');
+            // Match 'downloaded <blob> from <ip>:<port>' and count unique IPs
+            const re = /downloaded\s+[0-9a-f]+\s+from\s+([0-9]{1,3}(?:\.[0-9]{1,3}){3})(?::\d+)?/gi;
+            const ips = new Set();
+            let m;
+            while ((m = re.exec(text)) !== null) {
+              ips.add(m[1]);
+            }
+            if (ips.size > 0) peerCount = ips.size;
+          }
+        }
+      } catch (_) {}
+    }
+
+    return { peers: peerCount };
+  } catch (e) {
+    return { error: e && e.message };
+  }
+});
+// Open media in external player (try VLC, fall back to OS handler)
+ipcMain.on('open-external-media', (event, url) => {
+  const fallback = () => {
+    try { shell.openExternal(url); } catch (_) {}
+  };
+  try {
+    const args = [];
+    let cmd = null;
+    if (process.platform === 'win32') {
+      const candidates = [];
+      if (process.env['ProgramFiles']) candidates.push(path.join(process.env['ProgramFiles'], 'VideoLAN', 'VLC', 'vlc.exe'));
+      if (process.env['ProgramFiles(x86)']) candidates.push(path.join(process.env['ProgramFiles(x86)'], 'VideoLAN', 'VLC', 'vlc.exe'));
+      const found = candidates.find((p) => { try { return fs.existsSync(p); } catch (e) { return false; } });
+      if (found) { cmd = found; args.push(url); }
+    } else if (process.platform === 'darwin') {
+      // Prefer launching via "open -a VLC" if available; else try PATH.
+      try {
+        execSync('osascript -e "id of app \"VLC\""', { stdio: 'ignore' });
+        cmd = 'open';
+        args.push('-a', 'VLC', url);
+      } catch (_) {
+        cmd = 'vlc';
+        args.push(url);
+      }
+    } else {
+      // Linux: check if vlc exists in PATH
+      try {
+        execSync('command -v vlc', { stdio: 'ignore', shell: '/bin/sh' });
+        cmd = 'vlc';
+        args.push(url);
+      } catch (_) {
+        cmd = null;
+      }
+    }
+
+    if (!cmd) return fallback();
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', shell: false });
+    child.on('error', fallback);
+    child.unref();
+  } catch (e) {
+    fallback();
+  }
 });
 
 ipcMain.on('open-context-menu', (event, payload) => {

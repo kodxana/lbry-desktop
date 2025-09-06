@@ -1,4 +1,4 @@
-// @flow
+﻿// @flow
 import React, { useEffect, useRef, useState } from 'react';
 import Button from 'component/button';
 import * as ICONS from 'constants/icons';
@@ -11,10 +11,12 @@ import './plugins/videojs-mobile-ui/plugin';
 import hlsQualitySelector from './plugins/videojs-hls-quality-selector/plugin';
 import recsys from './plugins/videojs-recsys/plugin';
 import qualityLevels from 'videojs-contrib-quality-levels';
+import 'videojs-contrib-dash';
 import LbryVolumeBarClass from './lbry-volume-bar';
 import keyboardShorcuts from './videojs-keyboard-shortcuts';
 import events from './videojs-events';
 import functions from './videojs-functions';
+import { ipcRenderer } from 'electron';
 
 export type Player = {
   on: (string, (any) => void) => void,
@@ -193,6 +195,110 @@ export default React.memo<Props>(function VideoJs(props: Props) {
         displayCurrentQuality: true,
       });
 
+      // Add Picture-in-Picture toggle if supported
+      try {
+        const Button = videojs.getComponent('Button');
+        const PipButton = videojs.extend(Button, {
+          constructor: function (player, options) {
+            Button.apply(this, arguments);
+            this.addClass('vjs-pip-control');
+            this.controlText('Picture-in-Picture');
+            this.el().setAttribute('aria-label', 'Picture in Picture');
+            this.el().style.minWidth = '2.4rem';
+            this.el().style.fontSize = '0.9rem';
+            this.el().style.lineHeight = '1';
+            this.el().textContent = 'PiP';
+          },
+          handleClick: function () {
+            try {
+              const videoEl = player.el() && player.el().querySelector('video');
+              if (!videoEl) return;
+              if (document.pictureInPictureElement) {
+                document.exitPictureInPicture().catch(() => {});
+              } else if (document.pictureInPictureEnabled && videoEl.requestPictureInPicture) {
+                videoEl.requestPictureInPicture().catch(() => {});
+              }
+            } catch (e) {}
+          },
+        });
+
+        if (!player.controlBar.getChild('PipButton')) {
+          videojs.registerComponent('PipButton', PipButton);
+          if ('pictureInPictureEnabled' in document) {
+            player.controlBar.addChild('PipButton', {}, player.controlBar.children().length - 1);
+          }
+        }
+      } catch (e) {
+        // ignore PiP setup failures
+      }
+
+      // Add External Player (VLC) button
+      try {
+        const Button = videojs.getComponent('Button');
+        const ExtButton = videojs.extend(Button, {
+          constructor: function () {
+            Button.apply(this, arguments);
+            this.addClass('vjs-extplayer-control');
+            this.controlText('Open in External Player');
+            this.el().setAttribute('aria-label', 'Open in External Player');
+            this.el().style.minWidth = '2.6rem';
+            this.el().style.fontSize = '0.9rem';
+            this.el().style.lineHeight = '1';
+            this.el().textContent = 'VLC';
+          },
+          handleClick: function () {
+            try { ipcRenderer && ipcRenderer.send('open-external-media', source); } catch (e) {}
+          },
+        });
+        if (!player.controlBar.getChild('ExtButton')) {
+          videojs.registerComponent('ExtButton', ExtButton);
+          player.controlBar.addChild('ExtButton', {}, player.controlBar.children().length - 1);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // Add compact network stats (peers + download rate) in control bar
+      try {
+        const Comp = videojs.getComponent('Component');
+        const NetStatsDisplay = videojs.extend(Comp, {
+          constructor: function () {
+            Comp.apply(this, arguments);
+            this.addClass('vjs-netstats-control');
+            this.el().setAttribute('aria-label', 'Network stats');
+            this.contentEl_ = document.createElement('div');
+            this.contentEl_.className = 'vjs-netstats-content';
+            this.el().appendChild(this.contentEl_);
+            const update = async () => {
+              let peers = '0';
+              try {
+                const st = await ipcRenderer.invoke('get-daemon-status');
+                if (st && st.peerCount !== undefined) peers = String(st.peerCount);
+                if (!st || st.peerCount === undefined) {
+                  const pc = await ipcRenderer.invoke('get-peer-count');
+                  if (pc && pc.peers !== undefined) peers = String(pc.peers);
+                }
+              } catch (e) {}
+              this.contentEl_.textContent = `Peers: ${peers}`;
+            };
+            update();
+            this.__timer = setInterval(update, 1000);
+            this.on('dispose', () => { if (this.__timer) clearInterval(this.__timer); });
+          },
+          createEl: function () {
+            const el = videojs.dom.createEl('div', { className: 'vjs-control vjs-netstats-control' });
+            return el;
+          },
+        });
+        if (!player.controlBar.getChild('NetStatsDisplay')) {
+          videojs.registerComponent('NetStatsDisplay', NetStatsDisplay);
+          // Insert just before the FullscreenToggle so it sits on the right edge
+          const idx = player.controlBar.children().length;
+          player.controlBar.addChild('NetStatsDisplay', {}, idx);
+        }
+      } catch (e) {}
+      // Diagnostics button removed per request; net stats displayed inline
+
       // Add recsys plugin
       if (shareTelemetry) {
         player.recsys({
@@ -303,3 +409,6 @@ export default React.memo<Props>(function VideoJs(props: Props) {
     </div>
   );
 });
+
+
+

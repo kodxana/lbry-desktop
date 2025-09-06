@@ -1,4 +1,4 @@
-// @flow
+﻿// @flow
 import React, { useEffect, useState, useCallback } from 'react';
 import { stopContextMenu } from 'util/context-menu';
 import type { Player } from './internal/videojs';
@@ -307,6 +307,20 @@ function VideoViewer(props: Props) {
         addPlayPreviousButton(player, doPlayPrevious);
       } else {
         addAutoplayNextButton(player, toggleAutoplayNext, autoplayNext);
+      // Reorder NetStats (Download/Peers) to appear before Theater Mode toggle
+      setTimeout(() => {
+        try {
+          const controlBar = player.getChild('controlBar');
+          if (!controlBar) return;
+          const stats = controlBar.getChild('NetStatsDisplay');
+          const theater = controlBar.getChild('TheaterModeButton');
+          if (stats && theater) {
+            try { controlBar.removeChild(stats); } catch (e) {}
+            const idx = controlBar.children().indexOf(theater);
+            controlBar.addChild(stats, {}, Math.max(0, idx));
+          }
+        } catch (e) {}
+      }, 0);
       }
     }
 
