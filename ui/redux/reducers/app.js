@@ -115,6 +115,34 @@ reducers['@@router/LOCATION_CHANGE'] = (state, action) => {
   };
 };
 
+// Ensure persisted values (like welcomeVersion) are restored on startup.
+reducers[ACTIONS.REHYDRATE] = (state, action) => {
+  try {
+    const persisted = action && action.payload && action.payload.app;
+    if (persisted) {
+      return {
+        ...state,
+        ...(persisted.welcomeVersion !== undefined ? { welcomeVersion: persisted.welcomeVersion } : {}),
+        ...(persisted.allowAnalytics !== undefined ? { allowAnalytics: persisted.allowAnalytics } : {}),
+        ...(persisted.hasClickedComment !== undefined ? { hasClickedComment: persisted.hasClickedComment } : {}),
+        ...(persisted.searchOptionsExpanded !== undefined
+          ? { searchOptionsExpanded: persisted.searchOptionsExpanded }
+          : {}),
+        ...(persisted.volume !== undefined ? { volume: persisted.volume } : {}),
+        ...(persisted.muted !== undefined ? { muted: persisted.muted } : {}),
+        ...(persisted.interestedInYoutubeSync !== undefined
+          ? { interestedInYoutubeSync: persisted.interestedInYoutubeSync }
+          : {}),
+        ...(persisted.splashAnimationEnabled !== undefined
+          ? { splashAnimationEnabled: persisted.splashAnimationEnabled }
+          : {}),
+        ...(persisted.activeChannel !== undefined ? { activeChannel: persisted.activeChannel } : {}),
+      };
+    }
+  } catch (e) {}
+  return state;
+};
+
 reducers[ACTIONS.DAEMON_READY] = (state) =>
   Object.assign({}, state, {
     daemonReady: true,

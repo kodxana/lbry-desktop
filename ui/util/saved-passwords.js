@@ -4,30 +4,30 @@ const SAVED_PASSWORD = 'saved_password';
 const domain =
   typeof window === 'object' && window.location.hostname.includes('localhost') ? window.location.hostname : DOMAIN;
 const isProduction = process.env.NODE_ENV === 'production';
-const maxExpiration = 2147483647;
 let sessionPassword;
 
 function setCookie(name, value, expirationDaysOnWeb) {
-  let expires = '';
-  if (expirationDaysOnWeb) {
-    let date = new Date();
-    date.setTime(date.getTime() + expirationDaysOnWeb * 24 * 60 * 60 * 1000);
-    // If on PC, set to not expire (max)
-    expires = `expires=${maxExpiration};`;
+  const parts = [];
+  parts.push(`${name}=${value || ''}`);
+  parts.push('path=/');
+
+  // Persist cookies across app restarts.
+  // - On web: honor provided days (if any); otherwise default to 365 days.
+  // - On desktop (dev): use a long Max-Age as well since there's no server-controlled expiry.
+  const maxAgeSeconds = (expirationDaysOnWeb ? expirationDaysOnWeb : 365) * 24 * 60 * 60;
+  parts.push(`Max-Age=${maxAgeSeconds}`);
+
+  if (isProduction) {
+    // In production (https), allow cross-site flow if needed.
+    parts.push('SameSite=None');
+    parts.push('Secure');
+    if (domain) parts.push(`domain=${domain}`);
+  } else {
+    // In dev (http://localhost), SameSite=None requires Secure, which is invalid on http.
+    parts.push('SameSite=Lax');
   }
 
-  let cookie = `${name}=${value || ''}; ${expires} path=/;`;
-  if (isProduction) {
-    cookie += ` SameSite=None;`;
-  }
-  if (!isProduction) {
-    cookie += ` SameSite=Lax;`;
-  }
-  if (isProduction) {
-    cookie += ` domain=${domain}; Secure;`;
-  }
-
-  document.cookie = cookie;
+  document.cookie = parts.join('; ');
 }
 
 function getCookie(name) {
@@ -48,13 +48,13 @@ function getCookie(name) {
 }
 
 function deleteCookie(name) {
-  document.cookie = name + `=; Max-Age=-99999999; domain=${domain}; path=/;`;
-
-  // Legacy
-  // Adding this here to delete any old cookies before we removed the "." in front of the domain
-  // Remove this if you see it after March 11th, 2021
-  // https://github.com/lbryio/lbry-desktop/pull/3830
-  document.cookie = name + `=; Max-Age=-99999999; domain=.${domain}; path=/;`;
+  // Try deleting host-only cookie
+  document.cookie = `${name}=; Max-Age=0; path=/;`;
+  // And domain cookies, if any
+  if (domain) {
+    document.cookie = `${name}=; Max-Age=0; domain=${domain}; path=/;`;
+    document.cookie = `${name}=; Max-Age=0; domain=.${domain}; path=/;`;
+  }
 }
 
 function setSavedPassword(value, saveToDisk) {
@@ -64,11 +64,20 @@ function setSavedPassword(value, saveToDisk) {
 
     if (saveToDisk) {
       if (password) {
-        setCookie(SAVED_PASSWORD, password, 14);
+        // Persist via cookie (web) and localStorage (app/file://, dev http).
+        try {
+          setCookie(SAVED_PASSWORD, password, 14);
+        } catch (e) {}
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(SAVED_PASSWORD, password);
+          }
+        } catch (e) {}
       } else {
         deleteSavedPassword();
       }
     }
+    resolve();
   });
 }
 
@@ -84,15 +93,31 @@ function getSavedPassword() {
 
 function getPasswordFromCookie() {
   return new Promise((resolve) => {
-    let password;
-    password = getCookie(SAVED_PASSWORD);
+    let password = null;
+    try {
+      password = getCookie(SAVED_PASSWORD);
+    } catch (e) {}
+    if (!password) {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          password = window.localStorage.getItem(SAVED_PASSWORD);
+        }
+      } catch (e) {}
+    }
     resolve(password);
   });
 }
 
 function deleteSavedPassword() {
   return new Promise((resolve) => {
-    deleteCookie(SAVED_PASSWORD);
+    try {
+      deleteCookie(SAVED_PASSWORD);
+    } catch (e) {}
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(SAVED_PASSWORD);
+      }
+    } catch (e) {}
     resolve();
   });
 }
