@@ -73,7 +73,6 @@ function Paginate(props: Props) {
             marginPagesDisplayed={2}
             onPageChange={(e) => handleChangePage(e.selected + 1)}
             forcePage={currentPage - 1}
-            initialPage={currentPage - 1}
             containerClassName="pagination"
           />
         </fieldset-section>

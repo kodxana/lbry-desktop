@@ -353,7 +353,15 @@ export default function TextareaWithSuggestions(props: Props) {
 
   const renderInput = (params: any) => {
     const { InputProps, disabled, fullWidth, id, inputProps: autocompleteInputProps } = params;
-    const inputProps = { ...autocompleteInputProps, ...inputDefaultProps };
+    const handleKeyDown = (e) => {
+      if (!suggestionTerm) return;
+      if (e.key === 'Enter' && highlightedSuggestion) {
+        e.preventDefault();
+        handleSelect(highlightedSuggestion.label);
+      }
+    };
+
+    const inputProps = { ...autocompleteInputProps, ...inputDefaultProps, onKeyDown: handleKeyDown };
     const autocompleteProps = { InputProps, disabled, fullWidth, id, inputProps };
 
     return <TextField inputRef={inputRef} multiline select={false} {...autocompleteProps} />;

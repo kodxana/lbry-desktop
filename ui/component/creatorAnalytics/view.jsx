@@ -2,7 +2,6 @@
 import * as ICONS from 'constants/icons';
 import * as PAGES from 'constants/pages';
 import React from 'react';
-import { Lbryio } from 'lbryinc';
 import ClaimPreview from 'component/claimPreview';
 import Card from 'component/common/card';
 import Spinner from 'component/spinner';
@@ -35,28 +34,12 @@ export default function CreatorAnalytics(props: Props) {
     setStats(null);
   }, [claimId]);
 
-  const channelForEffect = JSON.stringify(claim);
+  // Creator Analytics deprecated: skip external API and show not-available message
   React.useEffect(() => {
-    if (claimId && channelForEffect && channelHasClaims) {
-      setFetchingStats(true);
-      Lbryio.call('reports', 'content', { claim_id: claimId })
-        .then((res) => {
-          setFetchingStats(false);
-          setStats(res);
-        })
-        .catch((error) => {
-          if (error.response.status === 401) {
-            setError(UNAUTHENTICATED_ERROR);
-            const channelToSend = JSON.parse(channelForEffect);
-            analytics.apiLogPublish(channelToSend);
-          } else {
-            setError(GENERIC_ERROR);
-          }
-
-          setFetchingStats(false);
-        });
-    }
-  }, [claimId, channelForEffect, channelHasClaims, setFetchingStats, setStats]);
+    setFetchingStats(false);
+    setStats(null);
+    setError(GENERIC_ERROR);
+  }, [claimId]);
 
   return (
     <React.Fragment>

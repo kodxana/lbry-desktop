@@ -72,7 +72,7 @@ function SettingCommentsServer(props: Props) {
     <FormField
       type="radio"
       checked={(!customServerEnabled && !onRemove) || (customServerEnabled && customServerUrl === serverDetails.url)}
-      onClick={() => onClick(serverDetails)}
+      onChange={() => onClick(serverDetails)}
       label={commentServerLabel(serverDetails, onRemove)}
       name={`${serverDetails.name}${serverDetails.url}`}
       key={`${serverDetails.name}${serverDetails.url}`}

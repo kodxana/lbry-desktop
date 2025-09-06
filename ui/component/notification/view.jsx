@@ -53,11 +53,7 @@ export default function Notification(props: Props) {
   const stickerFromComment = isCommentNotification && commentText && parseSticker(commentText);
   const notificationTarget = getNotificationTarget();
 
-  const creatorIcon = (channelUrl) => (
-    <UriIndicator uri={channelUrl} link>
-      <ChannelThumbnail small uri={channelUrl} />
-    </UriIndicator>
-  );
+  const creatorIcon = (channelUrl) => <ChannelThumbnail small uri={channelUrl} />;
   let channelUrl;
   let icon;
   switch (notification_rule) {
@@ -103,12 +99,15 @@ export default function Notification(props: Props) {
   let uriIndicator;
   const title = titleSplit.map((message, index) => {
     if (channelName === message) {
-      uriIndicator = <UriIndicator uri={channelUrl} link />;
+      uriIndicator = <UriIndicator key={`u-${index}`} uri={channelUrl} link={false} />;
       fullTitle.push(' ');
       const resultTitle = fullTitle;
       fullTitle = [' '];
 
-      return [resultTitle.join(' '), uriIndicator];
+      return [
+        <span key={`t-${index}`}>{resultTitle.join(' ')}</span>,
+        uriIndicator,
+      ];
     } else {
       fullTitle.push(message);
 

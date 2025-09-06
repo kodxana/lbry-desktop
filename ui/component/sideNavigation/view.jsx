@@ -137,12 +137,7 @@ function SideNavigation(props: Props) {
       icon: ICONS.CHANNEL,
       hideForUnauth: true,
     },
-    {
-      title: 'Creator Analytics',
-      link: `/$/${PAGES.CREATOR_DASHBOARD}`,
-      icon: ICONS.ANALYTICS,
-      hideForUnauth: true,
-    },
+    // Creator Analytics removed
     {
       title: 'Wallet',
       link: `/$/${PAGES.WALLET}`,

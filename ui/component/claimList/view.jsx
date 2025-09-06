@@ -1,7 +1,7 @@
 // @flow
 
 // $FlowFixMe
-import { Draggable } from 'react-beautiful-dnd';
+import { Draggable } from '@hello-pangea/dnd';
 import { MAIN_CLASS } from 'constants/classnames';
 import type { Node } from 'react';
 import React, { useEffect } from 'react';
@@ -161,6 +161,8 @@ export default function ClaimList(props: Props) {
 
   const getClaimPreview = (uri: string, index: number, draggableProvided?: any) => (
     <ClaimPreview
+      key={uri}
+      wrapperElement={draggableProvided ? 'div' : undefined}
       uri={uri}
       indexInContainer={index}
       type={type}

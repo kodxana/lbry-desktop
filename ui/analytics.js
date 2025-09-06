@@ -136,7 +136,9 @@ const analytics: Analytics = {
   },
   setUser: (userId) => {
     if (internalAnalyticsEnabled && userId) {
-      window._paq.push(['setUserId', String(userId)]);
+      if (window && window._paq && typeof window._paq.push === 'function') {
+        window._paq.push(['setUserId', String(userId)]);
+      }
       Native.getAppVersionInfo().then(({ localVersion }) => {
         sendMatomoEvent('Version', 'Desktop-Version', localVersion);
       });

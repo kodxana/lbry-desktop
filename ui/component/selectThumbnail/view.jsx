@@ -150,7 +150,7 @@ function SelectThumbnail(props: Props) {
                     name="content_thumbnail"
                     label="URL"
                     placeholder="https://images.fbi.gov/alien"
-                    value={thumbnail}
+                    value={thumbnail || ''}
                     disabled={formDisabled}
                     onChange={handleThumbnailChange}
                   />

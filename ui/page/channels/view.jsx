@@ -1,7 +1,6 @@
 // @flow
 import * as ICONS from 'constants/icons';
 import React, { useEffect } from 'react';
-import { Lbryio } from 'lbryinc';
 import ClaimList from 'component/claimList';
 import Page from 'component/page';
 import Button from 'component/button';
@@ -31,7 +30,7 @@ export default function ChannelsPage(props: Props) {
     doSetActiveChannel,
     pendingChannels,
   } = props;
-  const [rewardData, setRewardData] = React.useState();
+  // Creator analytics (Lbryio) is deprecated; remove reward/analytics dependencies.
   const hasYoutubeChannels = youtubeChannels && Boolean(youtubeChannels.length);
 
   const { push } = useHistory();
@@ -40,9 +39,10 @@ export default function ChannelsPage(props: Props) {
     fetchChannelListMine();
   }, [fetchChannelListMine]);
 
-  useEffect(() => {
-    Lbryio.call('user_rewards', 'view_rate').then((data) => setRewardData(data));
-  }, [setRewardData]);
+  // Deprecated: fetch view rewards via Lbryio
+  // useEffect(() => {
+  //   Lbryio.call('user_rewards', 'view_rate').then((data) => setRewardData(data));
+  // }, [setRewardData]);
 
   return (
     <Page className="channelsPage-wrapper">
@@ -62,53 +62,7 @@ export default function ChannelsPage(props: Props) {
             }
             loading={fetchingChannels}
             uris={channelUrls}
-            renderActions={(claim) => {
-              const claimsInChannel = claim.meta.claims_in_channel;
-              return claimsInChannel === 0 ? (
-                <span />
-              ) : (
-                <div className="section__actions">
-                  <Button
-                    button="alt"
-                    icon={ICONS.ANALYTICS}
-                    label={__('Analytics')}
-                    onClick={() => {
-                      doSetActiveChannel(claim.claim_id);
-                      push(`/$/${PAGES.CREATOR_DASHBOARD}`);
-                    }}
-                  />
-                </div>
-              );
-            }}
-            renderProperties={(claim) => {
-              const claimsInChannel = claim.meta.claims_in_channel;
-              if (!claim || claimsInChannel === 0) {
-                return null;
-              }
-
-              const channelRewardData =
-                rewardData &&
-                rewardData.rates &&
-                rewardData.rates.find((data) => {
-                  return data.channel_claim_id === claim.claim_id;
-                });
-
-              if (channelRewardData && !pendingChannels.includes(claim.permanent_url)) {
-                return (
-                  <span className="claim-preview__custom-properties">
-                    <span className="help--inline">
-                      {__('Earnings per view')} <HelpLink href="https://lbry.com/faq/view-rewards" />
-                    </span>
-
-                    <span>
-                      <LbcSymbol postfix={channelRewardData.view_rate.toFixed(2)} />
-                    </span>
-                  </span>
-                );
-              } else {
-                return null;
-              }
-            }}
+            // Analytics disabled: hide Analytics action and earnings per view.
           />
         )}
       </div>

@@ -27,7 +27,7 @@ function SyncPassword(props: Props) {
   const urlParams = new URLSearchParams(search);
   const redirect = urlParams.get('redirect');
   const [password, setPassword] = React.useState('');
-  const [rememberPassword, setRememberPassword] = usePersistedState(true);
+  const [rememberPassword, setRememberPassword] = usePersistedState('sync-remember-password', true);
 
   function handleSubmit() {
     getSync((error, hasDataChanged) => {

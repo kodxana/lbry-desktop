@@ -42,7 +42,7 @@ export default function HeaderProfileMenuButton(props: HeaderMenuButtonProps) {
         <MenuList className="menu__list--header">
           <HeaderMenuLink page={PAGES.UPLOADS} icon={ICONS.PUBLISH} name={__('Uploads')} />
           <HeaderMenuLink page={PAGES.CHANNELS} icon={ICONS.CHANNEL} name={__('Channels')} />
-          <HeaderMenuLink page={PAGES.CREATOR_DASHBOARD} icon={ICONS.ANALYTICS} name={__('Creator Analytics')} />
+          {/* Creator Analytics disabled */}
 
           {authenticated ? (
             <MenuItem onSelect={openSignOutModal}>
