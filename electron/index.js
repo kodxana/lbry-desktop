@@ -65,9 +65,7 @@ const PROTOCOL = 'lbry';
 
 if (isDev && process.platform === 'win32') {
   // Setting this is required to get this working in dev mode.
-  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
-    path.resolve(process.argv[1]),
-  ]);
+  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
 } else if (process.platform !== 'linux') {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
@@ -130,7 +128,7 @@ const startLbryFirst = async () => {
 
   try {
     lbryFirst = new LbryFirstInstance();
-    lbryFirst.on('exit', e => {
+    lbryFirst.on('exit', (e) => {
       if (!isDev) {
         lbryFirst = null;
         isLbryFirstRunning = false;
@@ -175,13 +173,13 @@ if (!gotSingleInstanceLock) {
     // Send the url to the app to navigate first, then focus
     if (rendererWindow) {
       // External uri (last item on argv):
-      const EXTERNAL_URI = (argv.length) ? argv[argv.length - 1] : '';
+      const EXTERNAL_URI = argv.length ? argv[argv.length - 1] : '';
       // Handle protocol requests for windows and linux
-      const platforms = (process.platform === 'win32' || process.platform === 'linux');
+      const platforms = process.platform === 'win32' || process.platform === 'linux';
       // Is LBRY protocol
       const isProtocolURI = String(EXTERNAL_URI).startsWith(PROTOCOL + '://');
       // External protocol requested:
-      if (platforms  && isProtocolURI) {
+      if (platforms && isProtocolURI) {
         let URI = EXTERNAL_URI;
         // Keep only command line / deep linked arguments
         // Windows normalizes URIs when they're passed in from other apps. On Windows, this tries to
@@ -192,9 +190,7 @@ if (!gotSingleInstanceLock) {
         //     an anchor and converts it to lbry://channel/#claimid. We remove the slash here as well.
         //   - ? also interpreted as an anchor, remove slash also.
         if (process.platform === 'win32') {
-          URI = URI.replace(/\/$/, '')
-            .replace('/#', '#')
-            .replace('/?', '?');
+          URI = URI.replace(/\/$/, '').replace('/#', '#').replace('/?', '?');
         }
 
         rendererWindow.webContents.send('open-uri-requested', URI);
@@ -208,19 +204,23 @@ if (!gotSingleInstanceLock) {
     await startDaemon();
     startSandbox();
 
-  if (isDev) {
-    await installDevtools();
-  }
-  rendererWindow = createWindow(appState);
-  tray = createTray(rendererWindow);
+    if (isDev) {
+      await installDevtools();
+    }
+    rendererWindow = createWindow(appState);
+    tray = createTray(rendererWindow);
 
-  if (isDev) {
-    try { rendererWindow.webContents.openDevTools({ mode: 'detach' }); } catch (e) {}
-    // Last-resort visibility fallback in dev
-    setTimeout(() => {
-      try { if (!rendererWindow.isVisible()) rendererWindow.show(); } catch (e) {}
-    }, 2000);
-  }
+    if (isDev) {
+      try {
+        rendererWindow.webContents.openDevTools({ mode: 'detach' });
+      } catch (e) {}
+      // Last-resort visibility fallback in dev
+      setTimeout(() => {
+        try {
+          if (!rendererWindow.isVisible()) rendererWindow.show();
+        } catch (e) {}
+      }, 2000);
+    }
 
     if (!isDev) {
       rendererWindow.webContents.on('devtools-opened', () => {
@@ -247,7 +247,7 @@ app.on('activate', () => {
   }
 });
 
-app.on('will-quit', event => {
+app.on('will-quit', (event) => {
   if (
     process.platform === 'win32' &&
     updateState === UPDATE_STATE_DOWNLOADED &&
@@ -365,40 +365,41 @@ ipcMain.handle('get-file-from-path', (event, path, readContents = true) => {
 });
 
 ipcMain.handle('get-file-details-from-path', async (event, path) => {
-    const isFfMp4 = (ffprobeResults) => {
-      return ffprobeResults &&
+  const isFfMp4 = (ffprobeResults) => {
+    return (
+      ffprobeResults &&
       ffprobeResults.format &&
       ffprobeResults.format.format_name &&
-      ffprobeResults.format.format_name.includes('mp4');
-    };
-    const folders = path.split(/[\\/]/);
-    const name = folders[folders.length - 1];
-    let duration = 0, size = 0, mimeType;
+      ffprobeResults.format.format_name.includes('mp4')
+    );
+  };
+  const folders = path.split(/[\\/]/);
+  const name = folders[folders.length - 1];
+  let duration = 0,
+    size = 0,
+    mimeType;
+  try {
+    await fs.promises.stat(path);
+    let ffprobeResults;
     try {
-      await fs.promises.stat(path);
-      let ffprobeResults;
+      ffprobeResults = await probe(path);
+      duration = ffprobeResults.format.duration;
+      size = ffprobeResults.format.size;
+    } catch (e) {}
+    let fileReadResult;
+    if (size < MAX_IPC_SEND_BUFFER_SIZE) {
       try {
-        ffprobeResults = await probe(path);
-        duration = ffprobeResults.format.duration;
-        size = ffprobeResults.format.size;
-      } catch (e) {
-      }
-      let fileReadResult;
-      if (size < MAX_IPC_SEND_BUFFER_SIZE) {
-        try {
-          fileReadResult = await fs.promises.readFile(path);
-        } catch (e) {
-
-        }
-      }
-      // TODO: use mmmagic to inspect file and get mime type
-      mimeType = isFfMp4(ffprobeResults) ? 'video/mp4' : mime.getType(name);
-      const fileData = {name, mime: mimeType || undefined, path, duration: duration, size, buffer: fileReadResult };
-      return fileData;
-    } catch (e) {
-      // no stat
-      return { error: 'no file' };
+        fileReadResult = await fs.promises.readFile(path);
+      } catch (e) {}
     }
+    // TODO: use mmmagic to inspect file and get mime type
+    mimeType = isFfMp4(ffprobeResults) ? 'video/mp4' : mime.getType(name);
+    const fileData = { name, mime: mimeType || undefined, path, duration: duration, size, buffer: fileReadResult };
+    return fileData;
+  } catch (e) {
+    // no stat
+    return { error: 'no file' };
+  }
 });
 
 ipcMain.on('get-disk-space', async (event) => {
@@ -433,8 +434,8 @@ ipcMain.on('version-info-requested', () => {
 
   const localVersion = pjson.version;
   let result = '';
-  const onSuccess = res => {
-    res.on('data', data => {
+  const onSuccess = (res) => {
+    res.on('data', (data) => {
       result += data;
     });
 
@@ -475,7 +476,7 @@ ipcMain.on('version-info-requested', () => {
         path: '/repos/lbryio/lbry-desktop/releases/latest',
         headers: { 'user-agent': `LBRY/${localVersion}` },
       },
-      res => {
+      (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           requestLatestRelease(res.headers.location, true);
         } else {
@@ -485,7 +486,7 @@ ipcMain.on('version-info-requested', () => {
     );
 
     if (alreadyRedirected) return;
-    req.on('error', err => {
+    req.on('error', (err) => {
       console.log('Failed to get current version from GitHub. Error:', err);
       if (rendererWindow) {
         rendererWindow.webContents.send('version-info-received', null);
@@ -510,7 +511,7 @@ ipcMain.on('launch-lbry-first', async () => {
   }
 });
 
-process.on('uncaughtException', error => {
+process.on('uncaughtException', (error) => {
   console.log(error);
   dialog.showErrorBox('Error Encountered', `Caught error: ${error}`);
   appState.isQuitting = true;
@@ -592,24 +593,24 @@ ipcMain.on('download-upgrade', (event, params) => {
 
   // Grab the download item's handler to allow
   // cancelling the operation if required.
-  options.onStarted = function(downloadItem) {
+  options.onStarted = function (downloadItem) {
     updateDownloadItem = downloadItem;
   };
-  options.onCancel = function() {
+  options.onCancel = function () {
     updateState = UPDATE_STATE_UPDATES_FOUND;
     updateDownloadItem = undefined;
   };
-  options.onProgress = function(p) {
+  options.onProgress = function (p) {
     rendererWindow.webContents.send('download-progress-update', p);
   };
-  options.onCompleted = function(c) {
+  options.onCompleted = function (c) {
     updateState = UPDATE_STATE_DOWNLOADED;
     updateDownloadItem = undefined;
     rendererWindow.webContents.send('download-update-complete', c);
   };
   options.directory = dir;
   const win = BrowserWindow.getFocusedWindow();
-  download(win, url, options).catch(e => {
+  download(win, url, options).catch((e) => {
     updateState = UPDATE_STATE_UPDATES_FOUND;
     console.log('e', e);
   });
@@ -695,7 +696,11 @@ ipcMain.handle('get-app-locale', () => app.getLocale());
 ipcMain.handle('get-path', (event, key) => {
   const allowed = new Set(['home', 'downloads', 'documents', 'desktop', 'temp']);
   if (!allowed.has(key)) return undefined;
-  try { return app.getPath(key); } catch (e) { return undefined; }
+  try {
+    return app.getPath(key);
+  } catch (e) {
+    return undefined;
+  }
 });
 
 ipcMain.handle('show-open-dialog', async (event, options) => {
@@ -717,7 +722,9 @@ ipcMain.on('inspect-element', (event, pos) => {
   if (!isDev) return;
   const win = BrowserWindow.fromWebContents(event.sender) || rendererWindow;
   if (win && pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
-    try { win.inspectElement(pos.x, pos.y); } catch (e) {}
+    try {
+      win.inspectElement(pos.x, pos.y);
+    } catch (e) {}
   }
 });
 
@@ -758,18 +765,26 @@ ipcMain.on('open-context-menu', (event, payload) => {
         out.click = () => {
           switch (item.action) {
             case 'clipboard':
-              try { clipboard.writeText(String(item.value || '')); } catch (e) {}
+              try {
+                clipboard.writeText(String(item.value || ''));
+              } catch (e) {}
               break;
             case 'openExternal':
-              try { if (item.value) shell.openExternal(String(item.value)); } catch (e) {}
+              try {
+                if (item.value) shell.openExternal(String(item.value));
+              } catch (e) {}
               break;
             case 'inspectAt':
               if (win) {
-                try { win.inspectElement(position.x || 0, position.y || 0); } catch (e) {}
+                try {
+                  win.inspectElement(position.x || 0, position.y || 0);
+                } catch (e) {}
               }
               break;
             case 'send':
-              try { event.sender.send(String(item.channel || 'context-menu-click'), item.value); } catch (e) {}
+              try {
+                event.sender.send(String(item.channel || 'context-menu-click'), item.value);
+              } catch (e) {}
               break;
             default:
               break;

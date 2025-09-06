@@ -1,7 +1,6 @@
 // @flow
 import * as React from 'react';
-import { shell } from 'electron';
-import { ipcRenderer } from 'electron';
+import { shell, ipcRenderer } from 'electron';
 import Button from 'component/button';
 import CopyableText from 'component/copyableText';
 import AdmZip from 'adm-zip';

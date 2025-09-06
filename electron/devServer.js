@@ -17,16 +17,18 @@ renderConfig = merge(renderConfig, {
   entry: { ui: ['webpack-hot-middleware/client'] },
   plugins: [new webpack.HotModuleReplacementPlugin()],
   resolve: {
-    alias: { 'react-dom': '@hot-loader/react-dom', electron: require('path').resolve(__dirname, '../ui/electron-shim.js') },
+    alias: {
+      'react-dom': '@hot-loader/react-dom',
+      electron: require('path').resolve(__dirname, '../ui/electron-shim.js'),
+    },
     symlinks: false,
   },
-
 });
 
 const mainCompiler = webpack(mainConfig);
 const mainInstance = middleware(mainCompiler, {
   logLevel: 'warn',
-  writeToDisk: filename => {
+  writeToDisk: (filename) => {
     // console.log(`Writing '${filename}'.`);
     return true;
   },
@@ -58,15 +60,15 @@ mainInstance.waitUntilValid(() => {
     env: { ...process.env, NODE_OPTIONS: '' },
   });
 
-  child.stdout.on('data', data => {
+  child.stdout.on('data', (data) => {
     console.log(data.toString());
   });
 
-  child.stderr.on('data', data => {
+  child.stderr.on('data', (data) => {
     console.error(data.toString());
   });
 
-  process.on('SIGINT', function() {
+  process.on('SIGINT', function () {
     console.log('Killing threads...');
 
     child.kill('SIGINT');
@@ -74,4 +76,3 @@ mainInstance.waitUntilValid(() => {
   });
 });
 /* eslint-enable no-console */
-

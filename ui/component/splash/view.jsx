@@ -67,7 +67,7 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     const { checkDaemonVersion, setWalletServers } = this.props;
-    try { setWalletServers(); } catch (e) {}
+    try { setWalletServers() } catch (e) {}
     this.adjustErrorTimeout();
 
     Lbry.connect()
