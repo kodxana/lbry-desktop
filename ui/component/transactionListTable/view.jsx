@@ -1,5 +1,4 @@
 // @flow
-import * as MODALS from 'constants/modal_types';
 import React from 'react';
 import TxoListItem from 'component/transactionListTableItem';
 import Spinner from 'component/spinner';

@@ -16,6 +16,22 @@
   display: inline-block;
 }
 
+// Responsive filter grid for Transactions
+.txo__filters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(160px, 1fr));
+  gap: var(--spacing-s);
+  align-items: end;
+
+  @media (max-width: $breakpoint-small) {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
+
+.txo__status-fieldset {
+  margin: 0; // let grid manage spacing
+}
+
 // displaying fiat transactions (incoming/outgoing) in wallet
 .wallet__fiat-transactions {
   text-align: center;
@@ -29,4 +45,77 @@
 .txo__radios,
 .txo__radios_fieldset {
   display: inline !important;
+}
+
+// --- Transactions Filters Layout Tweaks ---
+.txo__filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  gap: var(--spacing-s);
+  align-items: end;
+  width: 100%;
+  flex: 1 1 700px;
+
+  @media (max-width: $breakpoint-small) {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  // Ensure form controls span the cell
+  .form-field input,
+  .form-field select {
+    width: 100%;
+  }
+}
+
+.txo__status-fieldset {
+  margin: 0; // let grid control spacing
+
+  .txo__radios {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: var(--spacing-xxs);
+    white-space: nowrap;
+  }
+
+  .button-toggle {
+    margin: 0; // avoid extra bumps
+  }
+}
+
+.card__actions.card__actions--between {
+  display: flex;
+  align-items: end; // align baselines of inputs and buttons
+  flex-wrap: wrap;  // allow actions to wrap under filters if needed
+  gap: var(--spacing-s);
+}
+
+.card__actions.card__actions--between > .card__actions--inline {
+  align-self: end;
+  display: inline-flex;
+  gap: var(--spacing-s);
+  flex-shrink: 0; // prevent cutting when narrow, wraps instead
+}
+
+.card__actions.card__actions--between > .txo__filters {
+  // Avoid extra bottom offset that pushes the right actions lower
+  margin-bottom: 0;
+}
+
+// Normalize button height to match input controls in this bar
+.card__actions.card__actions--between > .card__actions--inline .button {
+  min-height: 40px; // aligns visually to inputs (~40px in this theme)
+  display: inline-flex;
+  align-items: center;
+}
+
+// Align the right-side actions (Export/Refresh) with the bottom of the filters
+.card__actions.card__actions--between > .card__actions--inline {
+  align-self: end;
+  display: inline-flex;
+  gap: var(--spacing-s);
+}
+
+// Normalize inner fieldset spacing for compact layout
+.txo__filters fieldset-section {
+  margin: 0;
 }

@@ -63,6 +63,7 @@ import ModalWalletDecrypt from 'modal/modalWalletDecrypt';
 import ModalWalletEncrypt from 'modal/modalWalletEncrypt';
 
 import ModalWalletUnlock from 'modal/modalWalletUnlock';
+import ModalTxDetails from 'modal/modalTxDetails';
 
 function getModal(id) {
   switch (id) {
@@ -145,6 +146,8 @@ function getModal(id) {
       return ModalRemoveCard;
     case MODALS.CONFIRM_REMOVE_COMMENT:
       return ModalRemoveComment;
+    case MODALS.TX_DETAILS:
+      return ModalTxDetails;
     default:
       return null;
   }

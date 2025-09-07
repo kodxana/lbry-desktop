@@ -1,6 +1,6 @@
 // @flow
 import * as ICONS from 'constants/icons';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { withRouter } from 'react-router';
 import * as TXO from 'constants/txo_list';
 import TransactionListTable from 'component/transactionListTable';
@@ -191,6 +191,29 @@ function TxoList(props: Props) {
     }
   }, [paramsString, updateTxoPageParams]);
 
+  // Local client-side filters (query + amount range) applied to current page
+  const [query, setQuery] = useState('');
+  const [minAmt, setMinAmt] = useState('');
+  const [maxAmt, setMaxAmt] = useState('');
+
+  const filteredTxos = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const min = minAmt ? Number(minAmt) : null;
+    const max = maxAmt ? Number(maxAmt) : null;
+    return (txoPage || []).filter((t) => {
+      try {
+        if (min !== null && Number(t.amount) < min) return false;
+        if (max !== null && Number(t.amount) > max) return false;
+      } catch (e) {}
+      if (!q) return true;
+      const hay = [t.txid, t.normalized_name, t.type, t.value_type, t.signing_channel && t.signing_channel.name]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [txoPage, query, minAmt, maxAmt]);
+
   return (
     <Card
       title={
@@ -204,7 +227,7 @@ function TxoList(props: Props) {
           {/* LBC transactions section */}
           <div className="card__body-actions">
             <div className="card__actions card__actions--between">
-              <div className="card__actions--inline">
+              <div className="txo__filters">
                 <div>
                   {/* LBC transaction type dropdown */}
                   <FormField
@@ -230,58 +253,57 @@ function TxoList(props: Props) {
                   </FormField>
                 </div>
                 {(type === TXO.SENT || type === TXO.RECEIVED) && (
-                  <div>
-                    <FormField
-                      type="select"
-                      name="subtype"
-                      label={__('Payment Type')}
-                      value={subtype || 'all'}
-                      onChange={(e) => handleChange({ changedParameterKey: TXO.SUB_TYPE, value: e.target.value })}
-                    >
-                      {Object.values(TXO.DROPDOWN_SUBTYPES).map((v) => {
-                        const stringV = String(v);
-                        return (
-                          <option key={stringV} value={stringV}>
-                            {stringV && __(toCapitalCase(stringV))}
-                          </option>
-                        );
-                      })}
-                    </FormField>
-                  </div>
+                  <FormField
+                    type="select"
+                    name="subtype"
+                    label={__('Payment Type')}
+                    value={subtype || 'all'}
+                    onChange={(e) => handleChange({ changedParameterKey: TXO.SUB_TYPE, value: e.target.value })}
+                  >
+                    {Object.values(TXO.DROPDOWN_SUBTYPES).map((v) => {
+                      const stringV = String(v);
+                      return (
+                        <option key={stringV} value={stringV}>
+                          {stringV && __(toCapitalCase(stringV))}
+                        </option>
+                      );
+                    })}
+                  </FormField>
                 )}
                 {!hideStatus && (
-                  <div>
-                    <fieldset-section>
-                      <label>{__('Status')}</label>
-                      <div className={'txo__radios'}>
-                        {/* active transactions button */}
-                        <Button
-                          onClick={(e) => handleChange({ changedParameterKey: TXO.ACTIVE, value: 'active' })}
-                          className={classnames(`button-toggle`, {
-                            'button-toggle--active': active === TXO.ACTIVE,
-                          })}
-                          label={__('Active')}
-                        />
-                        {/* historical transactions button */}
-                        <Button
-                          onClick={(e) => handleChange({ changedParameterKey: TXO.ACTIVE, value: 'spent' })}
-                          className={classnames(`button-toggle`, {
-                            'button-toggle--active': active === 'spent',
-                          })}
-                          label={__('Historical')}
-                        />
-                        {/* all transactions button */}
-                        <Button
-                          onClick={(e) => handleChange({ changedParameterKey: TXO.ACTIVE, value: 'all' })}
-                          className={classnames(`button-toggle`, {
-                            'button-toggle--active': active === 'all',
-                          })}
-                          label={__('All')}
-                        />
-                      </div>
-                    </fieldset-section>
-                  </div>
+                  <FormField
+                    type="select"
+                    name="status"
+                    label={__('Status')}
+                    value={active || 'all'}
+                    onChange={(e) => handleChange({ changedParameterKey: TXO.ACTIVE, value: e.target.value })}
+                  >
+                    <option value="active">{__('Active')}</option>
+                    <option value="spent">{__('Historical')}</option>
+                    <option value="all">{__('All')}</option>
+                  </FormField>
                 )}
+                <FormField
+                  type="text"
+                  name="tx-search"
+                  label={__('Search (txid, address, claim)')}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <FormField
+                  type="text"
+                  name="min-amt"
+                  label={__('Min Amount')}
+                  value={minAmt}
+                  onChange={(e) => setMinAmt(e.target.value)}
+                />
+                <FormField
+                  type="text"
+                  name="max-amt"
+                  label={__('Max Amount')}
+                  value={maxAmt}
+                  onChange={(e) => setMaxAmt(e.target.value)}
+                />
               </div>
               {/* export and refresh buttons */}
               <div className="card__actions--inline">
@@ -303,7 +325,7 @@ function TxoList(props: Props) {
             </div>
           </div>
           {/* listing of the lbc transactions */}
-          <TransactionListTable txos={txoPage} />
+          <TransactionListTable txos={filteredTxos} />
           <Paginate totalPages={Math.ceil(txoItemCount / Number(pageSize))} />
         </div>
       }
@@ -312,3 +334,4 @@ function TxoList(props: Props) {
 }
 
 export default withRouter(TxoList);
+
