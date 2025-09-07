@@ -16,6 +16,21 @@ import { getAuthToken } from 'util/saved-passwords';
 import { generateInitialUrl } from 'util/url';
 import { X_LBRY_AUTH_TOKEN } from 'constants/token';
 
+// Ensure a stable, persistent storage backend for redux-persist.
+// Configure localForage BEFORE it is used by persistStore so the
+// correct driver and database are selected during initial rehydration.
+// Otherwise, startup may stall while using the default driver.
+try {
+  localForage.config({
+    name: 'lbry-desktop',
+    storeName: 'persist_v0',
+    description: 'Redux state for LBRY Desktop',
+    driver: localForage.INDEXEDDB,
+  });
+} catch (e) {
+  // noop; fall back to default localForage config
+}
+
 function isFunction(object) {
   return typeof object === 'function';
 }
@@ -216,16 +231,3 @@ const persistor = persistStore(store);
 window.persistor = persistor;
 
 export { store, persistor, history, whiteListedReducers };
-// Ensure a stable, persistent storage backend for redux-persist.
-// Explicitly select IndexedDB and a fixed db/store name so data survives app restarts
-// regardless of dev-server origin peculiarities.
-try {
-  localForage.config({
-    name: 'lbry-desktop',
-    storeName: 'persist_v0',
-    description: 'Redux state for LBRY Desktop',
-    driver: localForage.INDEXEDDB,
-  });
-} catch (e) {
-  // noop; fall back to default localForage config
-}

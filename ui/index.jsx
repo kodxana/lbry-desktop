@@ -270,7 +270,12 @@ function AppWrapper() {
       <PersistGate
         persistor={persistor}
         onBeforeLift={() => setPersistDone(true)}
-        loading={<div className="main--launching" />}
+        loading={
+          <div className="splash">
+            <h1 className="splash__title">LBRY</h1>
+            <div className="splash__details">Starting...</div>
+          </div>
+        }
       >
         <Fragment>
           {readyToLaunch ? (
