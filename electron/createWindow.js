@@ -36,7 +36,7 @@ export default (appState) => {
   const startMinimized = (process.argv || []).includes('--hidden');
 
   const windowConfiguration = {
-    backgroundColor: '#270f34', // Located in src/scss/init/_vars.scss `--color-background--splash`
+    backgroundColor: '#212529', // Match `--color-background--splash` to avoid purple blank
     minWidth: 950,
     minHeight: 600,
     autoHideMenuBar: true,

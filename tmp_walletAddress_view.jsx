@@ -19,7 +19,6 @@ type Props = {
 
 type State = {
   showQR: boolean,
-  filter: string,
 };
 
 class WalletAddress extends React.PureComponent<Props, State> {
@@ -28,7 +27,6 @@ class WalletAddress extends React.PureComponent<Props, State> {
 
     this.state = {
       showQR: false,
-      filter: '',
     };
 
     (this: any).toggleQR = this.toggleQR.bind(this);
@@ -36,15 +34,12 @@ class WalletAddress extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     const { checkAddressIsMine, receiveAddress, getNewAddress, fetchAddressList } = this.props;
-    try {
-      fetchAddressList();
-    } catch (e) {}
+    try { fetchAddressList(); } catch (e) {}
     if (!receiveAddress) {
       getNewAddress();
     } else {
       checkAddressIsMine(receiveAddress);
     }
-  }
 
   toggleQR() {
     this.setState({
@@ -64,21 +59,9 @@ class WalletAddress extends React.PureComponent<Props, State> {
       }
     }
   }
-
   render() {
-    const {
-      receiveAddress,
-      getNewAddress,
-      gettingNewAddress,
-      addressList,
-      addressListLoading,
-      setReceiveAddress,
-    } = this.props;
-    const { showQR, filter } = this.state;
-
-    const rawList = (addressList || []).map((it) => (it && (it.address || it)) || '').filter(Boolean);
-    const filtered = filter ? rawList.filter((a) => a.toLowerCase().includes(filter.toLowerCase())) : rawList;
-    const listLimited = filtered.slice(0, 500);
+    const { receiveAddress, getNewAddress, gettingNewAddress, addressList, addressListLoading, setReceiveAddress } = this.props;
+    const { showQR } = this.state;
 
     return (
       <Card
@@ -100,33 +83,22 @@ class WalletAddress extends React.PureComponent<Props, State> {
                 onClick={getNewAddress}
                 disabled={gettingNewAddress}
               />
-              <Button
-                button="link"
-                label={showQR ? __('Hide QR code') : __('Show QR code')}
-                onClick={this.toggleQR}
-              />
+              <Button button="link" label={showQR ? __('Hide QR code') : __('Show QR code')} onClick={this.toggleQR} />
             </div>
             <p className="help">
               {__('You can generate a new address at any time, and any previous addresses will continue to work.')}
+            
+
+            <FormField
+              type=\"select\"
             </p>
-
-            <FormField
-              type="text"
-              name="wallet-address-search"
-              label={__('Search addresses')}
-              value={filter}
-              onChange={(e) => this.setState({ filter: e.target.value })}
-            />
-
-            <FormField
-              type="select"
-              name="wallet-address-select"
               label={__('Select main receive address')}
               disabled={addressListLoading}
               value={receiveAddress || ''}
               onChange={(e) => setReceiveAddress(e.target.value)}
             >
-              {listLimited.map((addr) => {
+              {(addressList || []).map((item) => {
+                const addr = item && (item.address || item);
                 return (
                   <option key={addr} value={addr}>
                     {addr}
@@ -134,8 +106,7 @@ class WalletAddress extends React.PureComponent<Props, State> {
                 );
               })}
             </FormField>
-
-            {showQR && <QRCode value={receiveAddress} paddingTop />}
+            
           </React.Fragment>
         }
       />
@@ -144,6 +115,7 @@ class WalletAddress extends React.PureComponent<Props, State> {
 }
 
 export default WalletAddress;
+
 
 
 

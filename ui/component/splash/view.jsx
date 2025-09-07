@@ -32,6 +32,9 @@ type Props = {
   clearWalletServers: () => void,
   setWalletServers: () => void,
   doShowSnackBar: (string) => void,
+  daemonSettings?: any,
+  walletReconnect: (toDefault?: boolean) => void,
+  fetchDaemonSettings?: () => void,
 };
 
 type State = {
@@ -63,11 +66,14 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
     (this: any).renderModals = this.renderModals.bind(this);
     (this: any).runWithIncompatibleDaemon = this.runWithIncompatibleDaemon.bind(this);
     this.timeout = undefined;
+    this.setDefaultsAttempted = false;
   }
 
   componentDidMount() {
-    const { checkDaemonVersion, setWalletServers } = this.props;
-    try { setWalletServers() } catch (e) {}
+    const { checkDaemonVersion, fetchDaemonSettings } = this.props;
+    try {
+      if (fetchDaemonSettings) fetchDaemonSettings();
+    } catch (e) {}
     this.adjustErrorTimeout();
 
     Lbry.connect()
@@ -108,8 +114,19 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
   }
 
   updateStatus() {
-    const { modal, notifyUnlockWallet, clearWalletServers, setWalletServers, doShowSnackBar } = this.props;
+    const { modal, notifyUnlockWallet, clearWalletServers, setWalletServers, doShowSnackBar, daemonSettings } = this.props;
     const { launchedModal } = this.state;
+    // Ensure defaults exist at least once if daemon has none
+    if (!this.setDefaultsAttempted) {
+      try {
+        const configured = daemonSettings && daemonSettings.lbryum_servers;
+        const hasConfigured = Array.isArray(configured) ? configured.length > 0 : !!configured;
+        if (!hasConfigured) {
+          setWalletServers();
+          this.setDefaultsAttempted = true;
+        }
+      } catch (e) {}
+    }
 
     Lbry.status().then((status) => {
       const sdkStatus = status;
@@ -154,9 +171,8 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
 
   updateStatusCallback(status: StatusResponse, walletStatus: WalletStatusResponse, waitingForUnlock: boolean = false) {
     const { wallet, startup_status: startupStatus } = status;
-
-    // If the wallet is locked, stop doing anything and make the user input their password
-    if (startupStatus && wallet && wallet.available_servers < 1) {
+    // If the wallet servers aren't available yet, keep waiting (remove dependency on startup_status)
+    if (wallet && typeof wallet.available_servers !== 'undefined' && wallet.available_servers < 1) {
       this.setState({ waitingForWallet: this.state.waitingForWallet + UPDATE_INTERVAL / 1000 });
     } else if (status.is_running && !waitingForUnlock) {
       Lbry.resolve({ urls: 'lbry://one' }).then(() => {
@@ -240,7 +256,9 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
 
   render() {
     const { error, details } = this.state;
-    const { animationHidden, toggleSplashAnimation } = this.props;
+    const { animationHidden, toggleSplashAnimation, daemonSettings, setWalletServers, walletReconnect } = this.props;
+    const servers = (daemonSettings && daemonSettings.lbryum_servers) || [];
+    const serverText = Array.isArray(servers) ? servers.join(', ') : String(servers || '');
 
     return (
       <div className="splash">
@@ -294,6 +312,16 @@ export default class SplashScreen extends React.PureComponent<Props, State> {
             label={!animationHidden ? __('I feel woosy! Stop spinning!') : __('Spin Spin Sugar')}
             onClick={() => toggleSplashAnimation()}
           />
+        )}
+        {!error && serverText && (
+          <div className="splash__servers">
+            <div className="splash__servers-title">{__('Connecting to wallet servers:')}</div>
+            <div className="splash__servers-list">{serverText}</div>
+            <div className="splash__server-actions">
+              <Button button="link" label={__('Switch to default servers')} onClick={() => setWalletServers()} />
+              <Button button="link" label={__('Reconnect now')} onClick={() => walletReconnect(true)} />
+            </div>
+          </div>
         )}
         {error && (
           <Card

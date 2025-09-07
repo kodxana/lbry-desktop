@@ -56,3 +56,34 @@
 .doodle {
   position: fixed;
 }
+
+// Additional server details placement and styling
+.splash__servers {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  max-width: 70vw;
+  text-align: center;
+}
+
+.splash__servers-title {
+  font-size: var(--font-small);
+  color: #fff;
+  opacity: 0.85;
+  margin-bottom: var(--spacing-xxs);
+}
+
+.splash__servers-list {
+  font-size: var(--font-small);
+  color: #fff;
+  word-break: break-word;
+}
+
+.splash__server-actions {
+  margin-top: var(--spacing-s);
+}
+
+.splash__server-actions .button--link + .button--link {
+  margin-left: var(--spacing-m);
+}

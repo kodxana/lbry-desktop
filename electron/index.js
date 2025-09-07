@@ -268,7 +268,12 @@ if (!gotSingleInstanceLock) {
   });
 
   app.on('ready', async () => {
-    await startDaemon();
+    // Create main window immediately so users see the in-app Starting screen while the daemon starts.
+    rendererWindow = createWindow(appState);
+    tray = createTray(rendererWindow);
+
+    // Start daemon in background; do not block window creation.
+    startDaemon().catch(() => {});
     startSandbox();
 
     if (isDev && process.env.ELECTRON_DEVTOOLS === 'true') {
@@ -278,17 +283,18 @@ if (!gotSingleInstanceLock) {
         // ignore devtools install errors by default
       }
     }
-    rendererWindow = createWindow(appState);
-    tray = createTray(rendererWindow);
 
     if (isDev) {
       try {
         rendererWindow.webContents.openDevTools({ mode: 'detach' });
       } catch (e) {}
-      // Last-resort visibility fallback in dev
+      // Last-resort visibility fallback in dev, but don't force-show while loading
       setTimeout(() => {
         try {
-          if (!rendererWindow.isVisible()) rendererWindow.show();
+          const wc = rendererWindow.webContents;
+          if (!rendererWindow.isVisible() && !wc.isLoading()) {
+            rendererWindow.show();
+          }
         } catch (e) {}
       }, 2000);
     }

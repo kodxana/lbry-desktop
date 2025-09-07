@@ -202,6 +202,8 @@ export const selectIsSendingSupport = createSelector(selectState, (state) => sta
 export const selectReceiveAddress = createSelector(selectState, (state) => state.receiveAddress);
 
 export const selectGettingNewAddress = createSelector(selectState, (state) => state.gettingNewAddress);
+export const selectAddressListLoading = createSelector(selectState, (state) => state.addressListLoading);
+export const selectAddressList = createSelector(selectState, (state) => state.addressList || []);
 
 export const selectDraftTransaction = createSelector(selectState, (state) => state.draftTransaction || {});
 

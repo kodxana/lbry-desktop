@@ -18,13 +18,11 @@ import { X_LBRY_AUTH_TOKEN } from 'constants/token';
 
 // Ensure a stable, persistent storage backend for redux-persist.
 // Configure localForage BEFORE it is used by persistStore so the
-// correct driver and database are selected during initial rehydration.
-// Otherwise, startup may stall while using the default driver.
+// correct driver is selected during initial rehydration.
+// Keep default name/storeName to maintain backward compatibility
+// with existing persisted data.
 try {
   localForage.config({
-    name: 'lbry-desktop',
-    storeName: 'persist_v0',
-    description: 'Redux state for LBRY Desktop',
     driver: localForage.INDEXEDDB,
   });
 } catch (e) {

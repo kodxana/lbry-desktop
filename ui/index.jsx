@@ -42,6 +42,7 @@ import { doToast } from 'redux/actions/notifications';
 import { getAuthToken, setAuthToken, doAuthTokenRefresh } from 'util/saved-passwords';
 import { makeSelectClientSetting } from 'redux/selectors/settings';
 import { DEFAULT_LANGUAGE, LBRY_API_URL } from 'config';
+import { doAuthenticate } from 'redux/actions/user';
 
 // Import 3rd-party styles before ours for the current way we are code-splitting.
 import 'scss/third-party.scss';
@@ -215,6 +216,12 @@ function AppWrapper() {
       const state = store.getState();
       const enabled = makeSelectClientSetting(SETTINGS.ENABLE_PRERELEASE_UPDATES)(state);
       ipcRenderer.send('set-allow-prerelease', !!enabled);
+
+      // Ensure Cloud Connect (Lbryio) auth state is restored immediately on startup.
+      // Avoid install side-effects; just populate current user if token exists.
+      try {
+        app.store.dispatch(doAuthenticate(undefined, undefined, undefined, false, undefined, false));
+      } catch (e) {}
     }
   }, [persistDone]);
 
@@ -248,7 +255,7 @@ function AppWrapper() {
       app.store.dispatch(doToggle3PAnalytics(null, true));
     }
   }, [persistDone]);
-
+  // Finish app init after splash and rehydrate.
   useEffect(() => {
     if (readyToLaunch && persistDone) {
       if (DEFAULT_LANGUAGE) {
@@ -264,17 +271,16 @@ function AppWrapper() {
       analytics.readyEvent(timeToStart);
     }
   }, [readyToLaunch, persistDone]);
-
   return (
     <Provider store={store}>
       <PersistGate
         persistor={persistor}
         onBeforeLift={() => setPersistDone(true)}
         loading={
-          <div className="splash">
-            <h1 className="splash__title">LBRY</h1>
-            <div className="splash__details">Starting...</div>
-          </div>
+          <Fragment>
+            <SplashScreen onReadyToLaunch={() => setReadyToLaunch(true)} />
+            <SnackBar />
+          </Fragment>
         }
       >
         <Fragment>
@@ -300,4 +306,5 @@ function AppWrapper() {
 const container = document.getElementById('app');
 const root = createRoot(container);
 root.render(<AppWrapper />);
+
 

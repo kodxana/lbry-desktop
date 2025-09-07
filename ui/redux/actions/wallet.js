@@ -247,6 +247,28 @@ export function doGetNewAddress() {
   };
 }
 
+export function doFetchAddressList() {
+  return (dispatch) => {
+    dispatch({ type: ACTIONS.ADDRESS_LIST_STARTED });
+    Lbry.address_list({ page: 1, page_size: 999999 })
+      .then((res) => {
+        const items = (res && res.items) || [];
+        dispatch({ type: ACTIONS.ADDRESS_LIST_COMPLETED, data: { items } });
+      })
+      .catch(() => {
+        dispatch({ type: ACTIONS.ADDRESS_LIST_COMPLETED, data: { items: [] } });
+      });
+  };
+}
+
+export function doSetReceiveAddress(address) {
+  return (dispatch) => {
+    if (address) {
+      dispatch({ type: ACTIONS.SET_DEFAULT_RECEIVE_ADDRESS, data: { address } });
+    }
+  };
+}
+
 export function doCheckAddressIsMine(address) {
   return (dispatch) => {
     dispatch({

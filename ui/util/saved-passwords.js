@@ -2,7 +2,9 @@ const { DOMAIN } = require('../../config.js');
 const AUTH_TOKEN = 'auth_token';
 const SAVED_PASSWORD = 'saved_password';
 const domain =
-  typeof window === 'object' && window.location.hostname.includes('localhost') ? window.location.hostname : DOMAIN;
+  typeof window === 'object' && window.location.hostname && window.location.hostname.includes('localhost')
+    ? window.location.hostname
+    : DOMAIN;
 const isProduction = process.env.NODE_ENV === 'production';
 let sessionPassword;
 
@@ -17,13 +19,20 @@ function setCookie(name, value, expirationDaysOnWeb) {
   const maxAgeSeconds = (expirationDaysOnWeb ? expirationDaysOnWeb : 365) * 24 * 60 * 60;
   parts.push(`Max-Age=${maxAgeSeconds}`);
 
-  if (isProduction) {
-    // In production (https), allow cross-site flow if needed.
+  // Determine context: https vs http vs file (Electron)
+  let protocol = '';
+  try {
+    protocol = typeof window !== 'undefined' && window.location ? window.location.protocol : '';
+  } catch (e) {}
+  const isHttps = protocol === 'https:';
+
+  if (isHttps) {
+    // Over https, allow cross-site when needed
     parts.push('SameSite=None');
     parts.push('Secure');
     if (domain) parts.push(`domain=${domain}`);
   } else {
-    // In dev (http://localhost), SameSite=None requires Secure, which is invalid on http.
+    // For http or file:// (Electron), avoid Secure and use Lax. Skip domain for host-only/file origins.
     parts.push('SameSite=Lax');
   }
 
@@ -123,16 +132,42 @@ function deleteSavedPassword() {
 }
 
 function getAuthToken() {
-  return getCookie(AUTH_TOKEN);
+  // Prefer cookie; fall back to localStorage for Electron/file:// contexts
+  const fromCookie = getCookie(AUTH_TOKEN);
+  if (fromCookie) return fromCookie;
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(AUTH_TOKEN);
+    }
+  } catch (e) {}
+  return null;
 }
 
 function setAuthToken(value) {
-  return setCookie(AUTH_TOKEN, value, 365);
+  // Store in cookie and localStorage so it persists reliably in Electron
+  try {
+    setCookie(AUTH_TOKEN, value, 365);
+  } catch (e) {}
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (value) {
+        window.localStorage.setItem(AUTH_TOKEN, value);
+      } else {
+        window.localStorage.removeItem(AUTH_TOKEN);
+      }
+    }
+  } catch (e) {}
+  return value;
 }
 
 function deleteAuthToken() {
   return new Promise((resolve) => {
     deleteCookie(AUTH_TOKEN);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(AUTH_TOKEN);
+      }
+    } catch (e) {}
     resolve();
   });
 }

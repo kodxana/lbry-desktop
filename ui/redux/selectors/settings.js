@@ -64,11 +64,20 @@ export const selectHasWalletServerPrefs = createSelector(
   makeSelectSharedPreferencesForKey(DAEMON_SETTINGS.LBRYUM_SERVERS),
   (servers) => {
     if (!servers || !servers.length) return false;
-    // Treat the default s1.lbry.network:50001 as the non-custom baseline
+    // Treat the following as default baseline (no "custom" if equal, order-insensitive):
+    const DEFAULT_SERVERS = [
+      's1.lbry.network:50001',
+      'a-hub1.odysee.com:50001',
+      'b-hub1.odysee.com:50001',
+      'c-hub1.odysee.com:50001',
+      's-hub1.odysee.com:50001',
+    ];
     try {
       const flat = Array.isArray(servers) ? servers.map(String) : [];
-      const isDefaultS1 = flat.length === 1 && flat[0] === 's1.lbry.network:50001';
-      return !isDefaultS1;
+      const defaultSet = new Set(DEFAULT_SERVERS);
+      const flatSet = new Set(flat);
+      const isDefaultList = flatSet.size === defaultSet.size && [...defaultSet].every((v) => flatSet.has(v));
+      return !isDefaultList;
     } catch (e) {
       return true;
     }

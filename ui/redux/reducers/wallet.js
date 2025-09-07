@@ -74,6 +74,8 @@ const defaultState = {
   fetchingSupports: false,
   abandoningSupportsByOutpoint: {},
   gettingNewAddress: false,
+  addressListLoading: false,
+  addressList: [],
   draftTransaction: buildDraftTransaction(),
   sendingSupport: false,
   walletIsEncrypted: false,
@@ -358,6 +360,22 @@ export const walletReducer = handleActions(
 
       return { ...state, gettingNewAddress: false, receiveAddress: address };
     },
+
+    [ACTIONS.ADDRESS_LIST_STARTED]: (state: WalletState) => ({
+      ...state,
+      addressListLoading: true,
+    }),
+
+    [ACTIONS.ADDRESS_LIST_COMPLETED]: (state: WalletState, action) => ({
+      ...state,
+      addressListLoading: false,
+      addressList: action.data.items || [],
+    }),
+
+    [ACTIONS.SET_DEFAULT_RECEIVE_ADDRESS]: (state: WalletState, action) => ({
+      ...state,
+      receiveAddress: action.data.address,
+    }),
 
     [ACTIONS.UPDATE_BALANCE]: (state: WalletState, action) => ({
       ...state,
