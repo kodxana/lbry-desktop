@@ -99,6 +99,12 @@ function SideNavigation(props: Props) {
     icon: ICONS.PURCHASED,
   };
 
+  const DOWNLOADS = {
+    title: 'Downloads',
+    link: `/$/${PAGES.DOWNLOAD_MANAGER}`,
+    icon: ICONS.DOWNLOAD,
+  };
+
   const NOTIFICATIONS = {
     title: 'Notifications',
     link: `/$/${PAGES.NOTIFICATIONS}`,
@@ -129,6 +135,11 @@ function SideNavigation(props: Props) {
       link: `/$/${PAGES.UPLOADS}`,
       icon: ICONS.PUBLISH,
       hideForUnauth: true,
+    },
+    {
+      title: 'Downloads',
+      link: `/$/${PAGES.DOWNLOAD_MANAGER}`,
+      icon: ICONS.DOWNLOAD,
     },
 
     {
@@ -409,6 +420,7 @@ function SideNavigation(props: Props) {
               {getLink(TAGS_FROM_FOLLOWING)}
               {getLink(DISCOVER)}
               {getLink(LIBRARY)}
+              {getLink(DOWNLOADS)}
               {getLink(PLAYLISTS)}
             </ul>
             <ul className="navigation-links--absolute mobile-only">

@@ -74,6 +74,12 @@ function FileListDownloaded(props: Props) {
             onClick={() => setViewMode(VIEW_PURCHASES)}
           />
           {loading && <Spinner type="small" />}
+          <Button
+            button="link"
+            icon={ICONS.DOWNLOAD}
+            label={__('Open Download Manager')}
+            navigate={`/$/downloads-manager`}
+          />
         </div>
 
         <Form onSubmit={() => {}} className="wunderbar--inline">

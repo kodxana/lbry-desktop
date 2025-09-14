@@ -38,6 +38,20 @@ export default function HeaderMenuButtons(props: HeaderMenuButtonProps) {
         </MenuList>
       </Menu>
 
+      {/* Downloads & Storage menu */}
+      <Menu>
+        <Tooltip title={__('Downloads & Storage')}>
+          <MenuButton className="header__navigationItem--icon">
+            <Icon size={18} icon={ICONS.DOWNLOAD} aria-hidden />
+          </MenuButton>
+        </Tooltip>
+
+        <MenuList className="menu__list--header">
+          <HeaderMenuLink page={PAGES.DOWNLOAD_MANAGER} icon={ICONS.DOWNLOAD} name={__('Download Manager')} />
+          <HeaderMenuLink page={PAGES.STORAGE_MANAGER} icon={ICONS.STACK} name={__('Storage Manager')} />
+        </MenuList>
+      </Menu>
+
       {notificationsEnabled && <NotificationHeaderButton />}
 
       <Menu>

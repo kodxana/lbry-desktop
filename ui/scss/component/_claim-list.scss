@@ -1400,3 +1400,23 @@
     margin-top: var(--spacing-s);
   }
 }
+
+// Download Manager compact view overrides
+.download-manager--compact {
+  .media__thumb,
+  .claim-preview__file-property-overlay,
+  .claim__menu-button,
+  .claim-preview__actions,
+  .claim-preview__primary-actions {
+    display: none !important;
+  }
+
+  .claim-preview__wrapper {
+    padding: var(--spacing-s) var(--spacing-m);
+  }
+
+  .claim-preview-properties {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

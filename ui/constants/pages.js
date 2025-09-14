@@ -75,3 +75,6 @@ exports.NOTIFICATIONS = 'notifications';
 exports.YOUTUBE_SYNC = 'youtube';
 exports.GENERAL = 'general';
 exports.LIST = 'list';
+// Custom additions
+exports.DOWNLOAD_MANAGER = 'downloads-manager';
+exports.STORAGE_MANAGER = 'storage-manager';

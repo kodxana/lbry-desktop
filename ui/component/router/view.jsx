@@ -62,6 +62,8 @@ import TagsFollowingPage from 'page/tagsFollowing';
 import TopPage from 'page/top';
 import UpdatePasswordPage from 'page/passwordUpdate';
 import Welcome from 'page/welcome';
+import DownloadManager from 'page/downloadManager';
+import StorageManager from 'page/storageManager';
 
 // Tell the browser we are handling scroll restoration
 if ('scrollRestoration' in history) {
@@ -268,6 +270,8 @@ function AppRouter(props: Props) {
       <PrivateRoute {...props} path={`/$/${PAGES.TAGS_FOLLOWING_MANAGE}`} component={TagsFollowingManagePage} />
       <PrivateRoute {...props} path={`/$/${PAGES.SETTINGS_BLOCKED_MUTED}`} component={ListBlockedPage} />
       <PrivateRoute {...props} path={`/$/${PAGES.SETTINGS_CREATOR}`} component={SettingsCreatorPage} />
+      <PrivateRoute {...props} path={`/$/${PAGES.DOWNLOAD_MANAGER}`} component={DownloadManager} />
+      <PrivateRoute {...props} path={`/$/${PAGES.STORAGE_MANAGER}`} component={StorageManager} />
       <PrivateRoute {...props} path={`/$/${PAGES.WALLET}`} exact component={WalletPage} />
       <PrivateRoute {...props} path={`/$/${PAGES.CHANNELS}`} component={ChannelsPage} />
       <PrivateRoute {...props} path={`/$/${PAGES.BUY}`} component={BuyPage} />

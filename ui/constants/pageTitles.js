@@ -58,4 +58,6 @@ export const PAGE_TITLE = {
   [PAGES.WALLET]: 'Wallet',
   [PAGES.WELCOME]: 'Welcome',
   [PAGES.YOUTUBE_SYNC]: 'YouTube Sync',
+  [PAGES.DOWNLOAD_MANAGER]: 'Download Manager',
+  [PAGES.STORAGE_MANAGER]: 'Storage Manager',
 };
