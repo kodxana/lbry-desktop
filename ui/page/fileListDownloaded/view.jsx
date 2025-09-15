@@ -1,14 +1,13 @@
 // @flow
 import * as ICONS from 'constants/icons';
-import React, { useState } from 'react';
+import React from 'react';
 import usePersistedState from 'effects/use-persisted-state';
 import Button from 'component/button';
+import Card from 'component/common/card';
 import ClaimList from 'component/claimList';
 import Paginate from 'component/common/paginate';
 import { PAGE_SIZE } from 'constants/claim';
-import { Form } from 'component/common/form-components/form';
 import Icon from 'component/common/icon';
-import { FormField } from 'component/common/form-components/form-field';
 import { withRouter } from 'react-router';
 import classnames from 'classnames';
 import { PURCHASES_PAGE_SIZE } from 'page/library/view';
@@ -43,80 +42,100 @@ function FileListDownloaded(props: Props) {
   } = props;
   const loading = fetchingFileList || fetchingMyPurchases;
   const [viewMode, setViewMode] = usePersistedState('library-view-mode', VIEW_PURCHASES);
-  const [searchQuery, setSearchQuery] = useState('');
 
   function handleInputChange(e) {
     const { value } = e.target;
-    if (value !== searchQuery) {
-      setSearchQuery(value);
+    if (value !== query) {
       history.replace(`?query=${value}&page=1`);
     }
   }
 
-  return (
-    <>
-      <div className="section__header--actions">
-        <div className="section__actions--inline">
-          <Button
-            icon={ICONS.LIBRARY}
-            label={__('Downloads')}
-            className={classnames(`button-toggle`, {
-              'button-toggle--active': viewMode === VIEW_DOWNLOADS,
-            })}
-            onClick={() => setViewMode(VIEW_DOWNLOADS)}
-          />
-          <Button
-            icon={ICONS.PURCHASED}
-            label={__('Purchases')}
-            className={classnames(`button-toggle`, {
-              'button-toggle--active': viewMode === VIEW_PURCHASES,
-            })}
-            onClick={() => setViewMode(VIEW_PURCHASES)}
-          />
-          {loading && <Spinner type="small" />}
-          <Button
-            button="link"
-            icon={ICONS.DOWNLOAD}
-            label={__('Open Download Manager')}
-            navigate={`/$/downloads-manager`}
-          />
-        </div>
+  const isDownloadsView = viewMode === VIEW_DOWNLOADS;
+  const activeUris = isDownloadsView ? myDownloads : myPurchases;
+  const totalItemCount = Number(isDownloadsView ? downloadedUrlsCount || 0 : myPurchasesCount || 0);
+  const visibleCount = activeUris ? activeUris.length : 0;
+  const pageSize = isDownloadsView ? PAGE_SIZE : PURCHASES_PAGE_SIZE;
 
-        <Form onSubmit={() => {}} className="wunderbar--inline">
-          <Icon icon={ICONS.SEARCH} />
-          <FormField
-            className="wunderbar__input--inline"
-            onChange={handleInputChange}
-            value={query}
-            type="text"
-            name="query"
-            placeholder={__('Search')}
+  const title = isDownloadsView ? __('Downloads') : __('Purchases');
+  const subtitle = query
+    ? __('Showing %count% results', { count: visibleCount })
+    : __('%count% items', { count: totalItemCount });
+
+  const emptyLabel = isDownloadsView
+    ? query
+      ? __('No downloads match %query%', { query })
+      : __('Files you download will appear here.')
+    : query
+    ? __('No purchases match %query%', { query })
+    : __('You have not purchased anything yet.');
+
+  const totalPages = Math.max(1, Math.ceil(totalItemCount / Number(pageSize || 1)));
+
+  return (
+    <Card
+      className="library-page__list"
+      title={title}
+      subtitle={subtitle}
+      isBodyList
+      titleActions={
+        <div className="library-page__controls">
+          <div className="library-page__toggle-group">
+            <Button
+              icon={ICONS.LIBRARY}
+              label={__('Downloads')}
+              className={classnames('button-toggle', {
+                'button-toggle--active': isDownloadsView,
+              })}
+              onClick={() => setViewMode(VIEW_DOWNLOADS)}
+              aria-pressed={isDownloadsView}
+            />
+            <Button
+              icon={ICONS.PURCHASED}
+              label={__('Purchases')}
+              className={classnames('button-toggle', {
+                'button-toggle--active': !isDownloadsView,
+              })}
+              onClick={() => setViewMode(VIEW_PURCHASES)}
+              aria-pressed={!isDownloadsView}
+            />
+          </div>
+          {loading && (
+            <span className="library-page__controls-spinner">
+              <Spinner type="small" />
+            </span>
+          )}
+          <form
+            onSubmit={(event) => event.preventDefault()}
+            className="library-page__search"
+            role="search"
+            aria-label={__('Search library')}
+          >
+            <Icon icon={ICONS.SEARCH} size={18} />
+            <input
+              className="library-page__search-input"
+              onChange={handleInputChange}
+              value={query}
+              type="search"
+              name="query"
+              placeholder={__('Search library')}
+            />
+          </form>
+        </div>
+      }
+      body={
+        <div className="library-page__list-body">
+          <ClaimList
+            tileLayout
+            uris={activeUris}
+            loading={loading}
+            renderProperties={() => null}
+            header={false}
+            empty={emptyLabel}
           />
-        </Form>
-      </div>
-      <div>
-        <ClaimList
-          renderProperties={() => null}
-          empty={
-            viewMode === VIEW_PURCHASES && !query ? (
-              <div>{__('No purchases found.')}</div>
-            ) : (
-              __('No results for %query%', { query })
-            )
-          }
-          uris={viewMode === VIEW_PURCHASES ? myPurchases : myDownloads}
-          loading={loading}
-        />
-        {!query && (
-          <Paginate
-            totalPages={Math.ceil(
-              Number(viewMode === VIEW_PURCHASES ? myPurchasesCount : downloadedUrlsCount) /
-                Number(viewMode === VIEW_PURCHASES ? PURCHASES_PAGE_SIZE : PAGE_SIZE)
-            )}
-          />
-        )}
-      </div>
-    </>
+          {!query && totalPages > 1 && <Paginate totalPages={totalPages} />}
+        </div>
+      }
+    />
   );
 }
 
