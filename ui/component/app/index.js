@@ -21,7 +21,7 @@ import {
   selectActiveChannelClaim,
   selectIsUpdateModalDisplayed,
 } from 'redux/selectors/app';
-import { doGetWalletSyncPreference, doSetLanguage } from 'redux/actions/settings';
+import { doGetWalletSyncPreference, doSetLanguage, doGetDaemonStatus } from 'redux/actions/settings';
 import { doSyncLoop } from 'redux/actions/sync';
 import {
   doDownloadUpgradeRequested,
@@ -70,6 +70,7 @@ const perform = (dispatch) => ({
   fetchModBlockedList: () => dispatch(doFetchModBlockedList()),
   resolveUris: (uris) => dispatch(doResolveUris(uris)),
   fetchModAmIList: () => dispatch(doFetchCommentModAmIList()),
+  getDaemonStatus: () => dispatch(doGetDaemonStatus()),
 });
 
 export default hot(connect(select, perform)(App));

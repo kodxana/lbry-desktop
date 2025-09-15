@@ -13,6 +13,28 @@ export const selectSettingDaemonSettings = createSelector(selectState, (state) =
 
 export const selectDaemonStatus = createSelector(selectState, (state) => state.daemonStatus);
 
+export const selectDhtPeerCount = createSelector(selectDaemonStatus, (status) => {
+  const peers = status && status.dht && status.dht.peers_in_routing_table;
+  return typeof peers === 'number' && peers >= 0 ? peers : null;
+});
+
+export const selectDaemonConnectionStatus = createSelector(selectDaemonStatus, (status) => {
+  if (!status) {
+    return 'unknown';
+  }
+
+  if (status.is_running === false) {
+    return 'offline';
+  }
+
+  const peers = status && status.dht && status.dht.peers_in_routing_table;
+  if (typeof peers === 'number' && peers > 0) {
+    return 'connected';
+  }
+
+  return 'connecting';
+});
+
 export const selectFfmpegStatus = createSelector(selectDaemonStatus, (status) => status.ffmpeg_status);
 export const selectViewBlobSpace = createSelector(
   selectDaemonStatus,

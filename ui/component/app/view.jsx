@@ -77,6 +77,7 @@ type Props = {
   resolveUris: (Array<string>) => void,
   fetchModAmIList: () => void,
   isUpdateModalDisplayed: boolean,
+  getDaemonStatus: () => void,
 };
 
 function App(props: Props) {
@@ -108,6 +109,7 @@ function App(props: Props) {
     activeChannelId,
     setActiveChannelIfNotSet,
     setIncognito,
+    getDaemonStatus,
     fetchModBlockedList,
     resolveUris,
     subscriptions,
@@ -195,6 +197,19 @@ function App(props: Props) {
   // Enable 'Alt + Left/Right' for history navigation on Desktop.
   // @if TARGET='app'
   useHistoryNav(history);
+  // @endif
+
+  // @if TARGET='app'
+  useEffect(() => {
+    if (!getDaemonStatus) return undefined;
+
+    getDaemonStatus();
+    const id = setInterval(() => {
+      getDaemonStatus();
+    }, 30000);
+
+    return () => clearInterval(id);
+  }, [getDaemonStatus]);
   // @endif
 
   useEffect(() => {

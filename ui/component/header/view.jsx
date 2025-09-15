@@ -18,6 +18,7 @@ import WunderBar from 'component/wunderbar';
 import * as remote from '@electron/remote';
 import { IS_MAC } from 'component/app/view';
 import NavigationButton from 'component/navigationButton';
+import HeaderNetworkStatus from 'component/headerNetworkStatus';
 
 type Props = {
   authHeader: boolean,
@@ -43,6 +44,8 @@ type Props = {
   roundedSpendableBalance: string,
   sidebarOpen: boolean,
   syncError: ?string,
+  daemonConnectionStatus: ?string,
+  dhtPeerCount: ?number,
   clearEmailEntry: () => void,
   clearPasswordEntry: () => void,
   setSidebarOpen: (boolean) => void,
@@ -63,6 +66,8 @@ const Header = (props: Props) => {
     roundedSpendableBalance,
     sidebarOpen,
     syncError,
+    daemonConnectionStatus,
+    dhtPeerCount,
     clearEmailEntry,
     clearPasswordEntry,
     setSidebarOpen,
@@ -120,8 +125,9 @@ const Header = (props: Props) => {
     }
   }, [canBackout, onBackout]);
 
-  const userButtons = (hideWallet?: boolean, hideProfile?: boolean) => (
+  const userButtons = (compact?: boolean) => (
     <div className="header__menu--right">
+      <HeaderNetworkStatus status={daemonConnectionStatus} peerCount={dhtPeerCount} compact={compact} />
       <Tooltip
         title={
           balance > 0
@@ -176,7 +182,7 @@ const Header = (props: Props) => {
               <Button onClick={onBackout} button="link" label={backLabel || __('Cancel')} icon={ICONS.ARROW_LEFT} />
             </div>
             {backTitle && <h1 className="header__authTitle">{(isMobile && simpleBackTitle) || backTitle}</h1>}
-            {userButtons(false, isMobile)}
+            {userButtons(isMobile)}
           </>
         ) : (
           <>

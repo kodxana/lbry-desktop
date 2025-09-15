@@ -2,7 +2,11 @@ import { connect } from 'react-redux';
 import { doClearEmailEntry, doClearPasswordEntry } from 'redux/actions/user';
 import { doSignOut } from 'redux/actions/app';
 import { formatCredits } from 'util/format-credits';
-import { selectClientSetting } from 'redux/selectors/settings';
+import {
+  selectClientSetting,
+  selectDhtPeerCount,
+  selectDaemonConnectionStatus,
+} from 'redux/selectors/settings';
 import { selectGetSyncErrorMessage } from 'redux/selectors/sync';
 import { selectHasNavigated } from 'redux/selectors/app';
 import { selectTotalBalance, selectBalance } from 'redux/selectors/wallet';
@@ -19,6 +23,8 @@ const select = (state) => ({
   roundedSpendableBalance: formatCredits(selectBalance(state), 2, true),
   syncError: selectGetSyncErrorMessage(state),
   user: selectUser(state),
+  daemonConnectionStatus: selectDaemonConnectionStatus(state),
+  dhtPeerCount: selectDhtPeerCount(state),
 });
 
 const perform = (dispatch) => ({
