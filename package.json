@@ -35,7 +35,6 @@
     "lint-fix": "eslint --fix --quiet 'ui/**/*.{js,jsx}' && eslint --fix --quiet 'electron/**/*.js'",
     "format": "prettier 'src/**/*.{js,jsx,scss,json}' --write",
     "flow-defs": "flow-typed install",
-    "precommit": "lint-staged",
     "postinstall": "electron-builder install-app-deps && node ./build/downloadDaemon.js",
     "postinstall:warning": "echo '\n\nWARNING\n\nNot all node modules were installed because NODE_ENV is set to \"production\".\nThis should only be set after installing dependencies with \"yarn\". The app will not work.\n\n'"
   },
