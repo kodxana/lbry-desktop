@@ -3,15 +3,17 @@ import * as ICONS from 'constants/icons';
 import * as PAGES from 'constants/pages';
 import { PAGE_TITLE } from 'constants/pageTitles';
 import React from 'react';
+import classnames from 'classnames';
 import Lbry from 'lbry';
 import Page from 'component/page';
 import Card from 'component/common/card';
 import Button from 'component/button';
-import Icon from 'component/common/icon';
 import ClaimList from 'component/claimList';
 import Paginate from 'component/common/paginate';
 import usePersistedState from 'effects/use-persisted-state';
 import { FormField } from 'component/common/form';
+import Spinner from 'component/spinner';
+import { getChannelFromClaim } from 'util/claim';
 
 type InventoryTotals = {
   network_storage: number,
@@ -47,7 +49,6 @@ export default function StorageManager(): React$Node {
   const [loading, setLoading] = React.useState(false);
 
   const [localOnly, setLocalOnly] = usePersistedState('sm-local-only', true);
-  const [showGrid, setShowGrid] = usePersistedState('sm-grid', true);
   const [grouped, setGrouped] = usePersistedState('sm-group', true);
   const [search, setSearch] = React.useState('');
   const [pageUris, setPageUris] = React.useState(1);
@@ -78,8 +79,59 @@ export default function StorageManager(): React$Node {
         setPinnedUris(uniq(pinUris));
 
         if (listUris.length) {
-          Lbry.resolve({ urls: uniq(listUris) })
-            .then((res) => setResolvedByUri(res || {}))
+          const requestUris = uniq(listUris);
+          Lbry.resolve({ urls: requestUris })
+            .then((res) => {
+              if (!res) {
+                setResolvedByUri({});
+                return;
+              }
+
+              const normalized = {};
+              const register = (key, value) => {
+                if (key && typeof key === 'string') {
+                  normalized[key] = value;
+                }
+              };
+
+              const registerFromClaim = (claim, value) => {
+                if (!claim) return;
+                register(claim.permanent_url, value);
+                register(claim.canonical_url, value);
+                register(claim.short_url, value);
+              };
+
+              Object.entries(res).forEach(([key, value]) => {
+                register(key, value);
+                if (!value || typeof value !== 'object') return;
+
+                register(value.permanent_url, value);
+                register(value.canonical_url, value);
+                register(value.short_url, value);
+
+                const claimLike = value.claim || value.stream || value.channel || value.value || null;
+                registerFromClaim(claimLike, value);
+
+                if (claimLike) {
+                  registerFromClaim(claimLike.signing_channel, value);
+                }
+                if (value.signing_channel) {
+                  registerFromClaim(value.signing_channel, value);
+                }
+              });
+
+              // Ensure entries exist for the exact request uri even if normalized by the SDK
+              requestUris.forEach((uri) => {
+                if (!normalized[uri]) {
+                  const short = uri.split('?')[0];
+                  if (normalized[short]) {
+                    normalized[uri] = normalized[short];
+                  }
+                }
+              });
+
+              setResolvedByUri(normalized);
+            })
             .catch(() => setResolvedByUri({}));
         } else {
           setResolvedByUri({});
@@ -145,30 +197,43 @@ export default function StorageManager(): React$Node {
       const direct = m[uri];
       const fromResults = m.results && m.results[uri];
       const entry = direct || fromResults || null;
-      // Some shapes return { claim: {...} }
-      return entry && entry.claim ? entry.claim : entry;
+      if (!entry) return null;
+
+      if (entry.claim) return entry.claim;
+      if (entry.stream) return entry.stream;
+      if (entry.channel) return entry.channel;
+      if (entry.value) return entry.value;
+
+      return entry;
     },
     [resolvedByUri]
   );
 
   const getChannelName = React.useCallback(
     (uri: string) => {
-      const r = getResolved(uri) || {};
-      const chObj =
-        (r && r.signing_channel) ||
-        (r && r.value && r.value.signing_channel) ||
-        (r && r.meta && r.meta.signing_channel) ||
-        null;
-      let chName = (chObj && chObj.name) || '';
-      if (!chName && chObj && chObj.canonical_url) {
-        const m = /lbry:\/\/(\@[A-Za-z0-9_\-\.]+)/.exec(chObj.canonical_url);
-        if (m && m[1]) chName = m[1];
+      const resolved = getResolved(uri);
+      const channelClaim = getChannelFromClaim(resolved);
+
+      const nameFromClaim = channelClaim && channelClaim.name;
+      if (nameFromClaim) {
+        return nameFromClaim.startsWith('@') ? nameFromClaim : `@${nameFromClaim}`;
       }
-      if (!chName) {
-        const m = /lbry:\/\/(\@[A-Za-z0-9_\-\.]+)/.exec(uri);
-        if (m && m[1]) chName = m[1];
+
+      const canonical =
+        (channelClaim && channelClaim.canonical_url) ||
+        (channelClaim && channelClaim.permanent_url) ||
+        (resolved && resolved.permanent_url) ||
+        (resolved && resolved.canonical_url);
+
+      if (canonical) {
+        const match = /lbry:\/\/(\@[A-Za-z0-9_\-\.]+)/.exec(canonical);
+        if (match && match[1]) {
+          return match[1];
+        }
       }
-      return chName || 'Unspecified';
+
+      const fallback = /lbry:\/\/(\@[A-Za-z0-9_\-\.]+)/.exec(uri);
+      return (fallback && fallback[1]) || 'Unspecified';
     },
     [getResolved]
   );
@@ -234,93 +299,149 @@ export default function StorageManager(): React$Node {
             renderActions={renderActions}
             renderProperties={renderProperties}
             showHiddenByUser
-            tileLayout={showGrid}
+            tileLayout
           />
         }
       />
     ));
-  }, [grouped, filteredUris, getChannelName, showGrid, renderActions, renderProperties]);
-
+  }, [grouped, filteredUris, getChannelName, renderActions, renderProperties]);
   const unmapped = entries.filter((e) => !makeUri(e.name, e.claim_id, e.url));
 
-  return (
-    <Page>
-      <div className={`card-stack ${showGrid ? 'storage-manager--grid' : ''}`}>
-        <div className="section__header--actions">
-          <h1 className="card__title">
-            <Icon icon={ICONS.STACK} /> {__(PAGE_TITLE[PAGES.STORAGE_MANAGER])}
-          </h1>
-          <div className="section__actions--inline">
-            <Button
-              button="alt"
-              icon={ICONS.FILTER}
-              label={localOnly ? 'Local Only' : 'All Hosted'}
-              onClick={() => {
-                setLocalOnly(!localOnly);
-                setPageUris(1);
-                setPageUnmapped(1);
-                refresh();
-              }}
-            />
-            <Button button="alt" icon={ICONS.REFRESH} label={'Refresh'} onClick={refresh} />
-            <Button
-              button="alt"
-              icon={ICONS.LAYOUT}
-              label={showGrid ? 'Grid' : 'List'}
-              onClick={() => setShowGrid(!showGrid)}
-            />
-            <Button
-              button="alt"
-              icon={ICONS.LAYOUT}
-              label={grouped ? 'Grouped' : 'Ungrouped'}
-              onClick={() => setGrouped(!grouped)}
-            />
-            <FormField
-              type="text"
-              name="storage-search"
-              className="paginate-goto"
-              placeholder={'Search (title, channel, url)'}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
+  const formatMb = (val) =>
+    typeof val === 'number' ? `${val.toLocaleString(undefined, { maximumFractionDigits: 0 })} MB` : '0 MB';
 
+  const statBlock = (label, value) => (
+    <div key={label} className="storage-manager__stat">
+      <span className="storage-manager__stat-label">{label}</span>
+      <span className="storage-manager__stat-value">{formatMb(value)}</span>
+    </div>
+  );
+
+  const handleLocalOnlyChange = React.useCallback(
+    (value: boolean) => {
+      if (value === localOnly) return;
+      setLocalOnly(value);
+      setPageUris(1);
+      setPageUnmapped(1);
+    },
+    [localOnly, setLocalOnly, setPageUris, setPageUnmapped]
+  );
+
+  const handleGroupedChange = React.useCallback(
+    (value: boolean) => {
+      if (value === grouped) return;
+      setGrouped(value);
+      setPageUris(1);
+    },
+    [grouped, setGrouped, setPageUris]
+  );
+
+  return (
+    <Page className="storage-manager-page">
+      <div className="storage-manager__layout">
         <Card
-          isBodyList
+          className="storage-manager__panel storage-manager__panel--full"
+          icon={ICONS.STACK}
+          title={__(PAGE_TITLE[PAGES.STORAGE_MANAGER])}
+          isPageTitle
+          titleActions={
+            <div className="storage-manager__actions">
+              <div className="storage-manager__toggle-group">
+                <Button
+                  label={__('Local')}
+                  className={classnames('button-toggle', { 'button-toggle--active': localOnly })}
+                  onClick={() => handleLocalOnlyChange(true)}
+                />
+                <Button
+                  label={__('All')}
+                  className={classnames('button-toggle', { 'button-toggle--active': !localOnly })}
+                  onClick={() => handleLocalOnlyChange(false)}
+                />
+              </div>
+              <Button button="alt" icon={ICONS.REFRESH} label={__('Refresh')} onClick={refresh} />
+            </div>
+          }
           body={
-            <div className="section">
-              {totals && (
-                <div className="section__subtitle">{`Network: ${totals.network_storage || 0} MB | Content: ${
-                  totals.content_storage || 0
-                } MB | Private: ${totals.private_storage || 0} MB | Total: ${totals.total || 0} MB`}</div>
+            <div className="storage-manager__summary">
+              {loading && (
+                <div className="storage-manager__loading">
+                  <Spinner type="small" />
+                  <span>{__('Loading storage data...')}</span>
+                </div>
               )}
-              {loading && <div className="help">Loading...</div>}
+              {!loading && totals && (
+                <div className="storage-manager__stats">
+                  {statBlock(__('Network'), totals.network_storage)}
+                  {statBlock(__('Content'), totals.content_storage)}
+                  {statBlock(__('Private'), totals.private_storage)}
+                  {statBlock(__('Total'), totals.total)}
+                </div>
+              )}
+              {!loading && !totals && <div className="help">{__('No storage metrics available.')}</div>}
             </div>
           }
         />
 
         <Card
-          title={'Pinned Claims'}
+          className="storage-manager__panel"
+          title={__('Pinned Claims')}
+          subtitle={
+            pinnedUris.length ? __('%count% items', { count: pinnedUris.length }) : __('No pins yet')
+          }
           isBodyList
           body={
             <ClaimList
               uris={pinnedUris}
               header={false}
-              empty={'No pins'}
+              empty={__('No pins')}
               renderActions={renderActions}
               renderProperties={renderProperties}
               showHiddenByUser
-              tileLayout={showGrid}
+              tileLayout
             />
           }
         />
 
         <Card
-          title={'All Stored Claims'}
+          className="storage-manager__panel storage-manager__panel--full"
+          title={__('All Stored Claims')}
+          subtitle={
+            filteredUris.length ? __('%count% items', { count: filteredUris.length }) : __('No stored claims yet')
+          }
           isBodyList
+          titleActions={
+            <div className="storage-manager__actions">
+              <div className="storage-manager__toggle-group">
+                <Button
+                  label={__('Grouped')}
+                  className={classnames('button-toggle', { 'button-toggle--active': grouped })}
+                  onClick={() => handleGroupedChange(true)}
+                />
+                <Button
+                  label={__('Ungrouped')}
+                  className={classnames('button-toggle', { 'button-toggle--active': !grouped })}
+                  onClick={() => handleGroupedChange(false)}
+                />
+              </div>
+              <div className="storage-manager__search">
+                <FormField
+                  type="search"
+                  name="storage-search"
+                  placeholder={__('Search (title, channel, url)')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          }
           body={
             <>
+              {loading && (
+                <div className="storage-manager__loading storage-manager__loading--inline">
+                  <Spinner type="small" />
+                  <span>{__('Updating list...')}</span>
+                </div>
+              )}
               {grouped ? (
                 groupedCards
               ) : (
@@ -328,11 +449,11 @@ export default function StorageManager(): React$Node {
                   <ClaimList
                     uris={filteredUris.slice((pageUris - 1) * PAGE_SIZE, pageUris * PAGE_SIZE)}
                     header={false}
-                    empty={'No stored claims'}
+                    empty={__('No stored claims')}
                     renderActions={renderActions}
                     renderProperties={renderProperties}
                     showHiddenByUser
-                    tileLayout={showGrid}
+                    tileLayout
                   />
                   <Paginate
                     totalPages={Math.max(1, Math.ceil(filteredUris.length / PAGE_SIZE))}
@@ -342,12 +463,12 @@ export default function StorageManager(): React$Node {
 
                   {unmapped.length > 0 && (
                     <>
-                      <div className="table table--stretch">
+                      <div className="table table--stretch storage-manager__table">
                         <div className="table__header">
-                          <div>Title</div>
-                          <div>Channel</div>
-                          <div>Blobs</div>
-                          <div>Size</div>
+                          <div>{__('Title')}</div>
+                          <div>{__('Channel')}</div>
+                          <div>{__('Blobs')}</div>
+                          <div>{__('Size')}</div>
                           <div className="table__actions" />
                         </div>
                         <div className="table__rows">
@@ -371,7 +492,7 @@ export default function StorageManager(): React$Node {
                               <div className="table__actions">
                                 <Button
                                   icon={it.pinned ? ICONS.UNLOCK : ICONS.LOCK}
-                                  label={it.pinned ? 'Unpin' : 'Pin'}
+                                  label={it.pinned ? __('Unpin') : __('Pin')}
                                   onClick={() =>
                                     (it.pinned
                                       ? Lbry.storage_unpin({ sd_hash: it.sd_hash })

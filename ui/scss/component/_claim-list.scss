@@ -1401,22 +1401,173 @@
   }
 }
 
-// Download Manager compact view overrides
-.download-manager--compact {
-  .media__thumb,
-  .claim-preview__file-property-overlay,
-  .claim__menu-button,
-  .claim-preview__actions,
-  .claim-preview__primary-actions {
-    display: none !important;
+// Download Manager table layout
+.download-manager__table {
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  background: var(--color-card-background);
+  overflow: hidden;
+}
+
+.download-manager__header,
+.download-manager__row {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2.8fr)
+    minmax(180px, 2fr)
+    minmax(120px, 1fr)
+    minmax(110px, 1fr)
+    minmax(110px, 1fr)
+    minmax(110px, 1fr)
+    minmax(160px, 1.4fr);
+  align-items: center;
+  column-gap: var(--spacing-m);
+  padding: var(--spacing-s) var(--spacing-m);
+}
+
+.download-manager__header {
+  background: var(--color-card-background-highlighted);
+  font-size: var(--font-xsmall);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-subtitle);
+  text-transform: uppercase;
+}
+
+.download-manager__row {
+  border-top: 1px solid var(--color-border);
+  transition: background 0.12s ease-in-out;
+
+  &:hover {
+    background: rgba(var(--color-header-background-base), 0.15);
+  }
+}
+
+.download-manager__cell {
+  font-size: var(--font-small);
+}
+
+.download-manager__cell--actions {
+  justify-self: flex-end;
+}
+
+.download-manager__cell--speed,
+.download-manager__cell--eta,
+.download-manager__cell--size {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.download-manager__title {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-small);
+}
+
+.download-manager__meta {
+  margin-top: var(--spacing-xxs);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--spacing-s);
+  row-gap: var(--spacing-xxs);
+  color: var(--color-text-subtitle);
+  font-size: var(--font-xxsmall);
+}
+
+.download-manager__path {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.download-manager__progress-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--color-header-background);
+  overflow: hidden;
+}
+
+.download-manager__progress-bar-value {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.2s ease-in-out;
+}
+
+.download-manager__progress-text {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--spacing-xxs);
+  gap: calc(var(--spacing-xxs) / 2);
+}
+
+.download-manager__progress-percent {
+  font-weight: var(--font-weight-bold);
+}
+
+.download-manager__progress-detail {
+  color: var(--color-text-subtitle);
+  font-size: var(--font-xxsmall);
+}
+
+.download-manager__actions {
+  display: flex;
+  gap: var(--spacing-xxs);
+}
+
+.download-manager__actions .button {
+  min-width: 0;
+}
+
+@media (max-width: $breakpoint-medium) {
+  .download-manager__header,
+  .download-manager__row {
+    grid-template-columns:
+      minmax(220px, 3fr)
+      minmax(180px, 2.2fr)
+      minmax(120px, 1fr)
+      minmax(120px, 1fr)
+      minmax(160px, 1.4fr);
   }
 
-  .claim-preview__wrapper {
-    padding: var(--spacing-s) var(--spacing-m);
+  .download-manager__header-cell.download-manager__cell--eta,
+  .download-manager__cell--eta {
+    display: none;
+  }
+}
+
+@media (max-width: $breakpoint-small) {
+  .download-manager__header,
+  .download-manager__row {
+    grid-template-columns:
+      minmax(200px, 3fr)
+      minmax(180px, 2.4fr)
+      minmax(140px, 1.4fr)
+      minmax(180px, 1.6fr);
   }
 
-  .claim-preview-properties {
+  .download-manager__header-cell.download-manager__cell--status,
+  .download-manager__cell--status,
+  .download-manager__header-cell.download-manager__cell--size,
+  .download-manager__cell--size {
+    display: none;
+  }
+}
+
+@media (max-width: $breakpoint-xsmall) {
+  .download-manager__header,
+  .download-manager__row {
+    grid-template-columns: 1fr;
+    row-gap: var(--spacing-xs);
+  }
+
+  .download-manager__cell {
     width: 100%;
-    justify-content: flex-start;
+  }
+
+  .download-manager__cell--actions {
+    justify-self: flex-start;
+  }
+
+  .download-manager__actions {
+    flex-wrap: wrap;
   }
 }

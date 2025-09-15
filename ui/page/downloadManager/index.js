@@ -1,16 +1,14 @@
 import { connect } from 'react-redux';
 import DownloadManager from './view';
-import { selectDownloadingFileInfos } from 'redux/selectors/file_info';
-import { buildURI } from 'util/lbryURI';
+import { selectClaimsByUri } from 'redux/selectors/claims';
+import { doResolveUris } from 'redux/actions/claims';
 
-const select = (state) => {
-  const infos = selectDownloadingFileInfos(state) || [];
-  const uris = infos
-    .map((fi) =>
-      buildURI({ streamName: fi.claim_name, channelName: fi.channel_name, channelClaimId: fi.channel_claim_id })
-    )
-    .filter(Boolean);
-  return { uris };
-};
+const select = (state) => ({
+  claimsByUri: selectClaimsByUri(state),
+});
 
-export default connect(select, null)(DownloadManager);
+const perform = (dispatch) => ({
+  doResolveUris: (uris) => dispatch(doResolveUris(uris, true)),
+});
+
+export default connect(select, perform)(DownloadManager);
