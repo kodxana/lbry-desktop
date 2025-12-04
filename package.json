@@ -1,6 +1,6 @@
 {
   "name": "lbry",
-  "version": "0.54.0",
+  "version": "0.54.1",
   "description": "A browser for the LBRY network, a digital marketplace controlled by its users.",
   "keywords": [
     "lbry"
@@ -12,11 +12,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lbryio/lbry-desktop"
+    "url": "https://github.com/kodxana/lbry-desktop"
   },
   "author": {
-    "name": "LBRY Inc.",
-    "email": "hello@lbry.com"
+    "name": "Madiator2011",
+    "email": ""
   },
   "main": "./dist/electron/main.js",
   "scripts": {
@@ -216,16 +216,17 @@
     "yarn": "^1.3"
   },
   "lbrySettings": {
-    "lbrynetDaemonVersion": "0.114.1",
+    "lbrynetDaemonVersion": "0.115.1",
     "lbrynetDaemonUrlTemplate": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet-OSNAME.zip",
     "lbrynetDaemonDir": "static/daemon",
     "lbrynetDaemonFileName": "lbrynet",
     "lbrynetDaemonUrls": {
-      "windows": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet.exe",
-      "linux": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet"
+      "windows": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet-Windows.zip",
+      "mac": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet-macOS.zip",
+      "linux": "https://github.com/kodxana/lbry-sdk/releases/download/vDAEMONVER/lbrynet-Linux.zip"
     },
     "lbrynetDaemonCompatibleVersions": [
-      "0.114.1"
+      "0.115.1"
     ]
   },
   "packageManager": "yarn@3.2.0"

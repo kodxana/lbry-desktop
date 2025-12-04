@@ -18,17 +18,23 @@
     {
       "from": "./static/daemon/",
       "to": "static/daemon/",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*"
+      ]
     },
     {
       "from": "./static/img",
       "to": "static/img",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*"
+      ]
     },
     {
       "from": "./static/font",
       "to": "static/font",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*"
+      ]
     },
     {
       "from": "./static/app-update.yml",
@@ -44,7 +50,7 @@
     "category": "public.app-category.entertainment",
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.plist",
-    "hardenedRuntime" : true,
+    "hardenedRuntime": true,
     "gatekeeperAssess": false
   },
   "dmg": {
@@ -72,12 +78,17 @@
   "protocols": [
     {
       "name": "LBRY URI",
-      "schemes": ["lbry"],
+      "schemes": [
+        "lbry"
+      ],
       "role": "Viewer"
     }
   ],
   "linux": {
-    "target": ["AppImage", "deb"],
+    "target": [
+      "AppImage",
+      "deb"
+    ],
     "executableName": "lbry",
     "category": "AudioVideo;Video",
     "desktop": {
@@ -85,7 +96,17 @@
     }
   },
   "deb": {
-    "depends": ["gconf2", "gconf-service", "libnotify4", "libxtst6", "libnss3"]
+    "depends": [
+      "gconf2",
+      "gconf-service",
+      "libnotify4",
+      "libxtst6",
+      "libnss3"
+    ],
+    "synopsis": "A browser for the LBRY network",
+    "description": "LBRY is a decentralized content marketplace. You can stream video, music, and read ebooks, or publish your own content and earn cryptocurrency.",
+    "priority": "optional",
+    "maintainer": "Madiator2011 <>"
   },
   "nsis": {
     "perMachine": true,
@@ -96,7 +117,9 @@
     "target": [
       {
         "target": "nsis",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
     ]
   },
